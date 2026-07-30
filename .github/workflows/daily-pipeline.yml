@@ -28,6 +28,26 @@ jobs:
       - name: Install ffmpeg
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
+      # If this step starts failing, the release asset name may have changed - check
+      # https://github.com/rhasspy/piper/releases for the current Linux x86_64 asset name.
+      - name: Install Piper TTS (free, local voice engine)
+        run: |
+          curl -L -o piper.tar.gz https://github.com/rhasspy/piper/releases/latest/download/piper_linux_x86_64.tar.gz
+          tar -xzf piper.tar.gz
+          echo "$PWD/piper" >> "$GITHUB_PATH"
+
+      - name: Download Piper voice models
+        run: |
+          mkdir -p voices
+          base=https://huggingface.co/rhasspy/piper-voices/resolve/main
+          for entry in "hi/hi_IN/pratham/medium/hi_IN-pratham-medium" \
+                       "en/en_US/lessac/medium/en_US-lessac-medium" \
+                       "en/en_US/amy/medium/en_US-amy-medium"; do
+            name=$(basename "$entry")
+            curl -L -o "voices/${name}.onnx" "$base/$entry.onnx"
+            curl -L -o "voices/${name}.onnx.json" "$base/$entry.onnx.json"
+          done
+
       - name: Install dependencies
         run: npm ci
 

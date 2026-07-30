@@ -4,9 +4,10 @@ import { CHANNELS, ENV } from "./config.js";
 import { getNextTopic, markTopicDone } from "./topicQueue.js";
 import { generateScript } from "./scriptGen.js";
 import { generateVoiceover } from "./tts.js";
-import { generateClip } from "./veo.js";
-import { muxSceneAudio, concatScenes } from "./stitch.js";
-import { uploadToYouTube } from "./upload.js";
+import { generateVerifiedSceneImage } from "./imageGen.js";
+import { muxSceneAudio, concatScenes, animateImage, getAudioDurationSeconds } from "./stitch.js";
+import { uploadToYouTube, uploadThumbnail } from "./upload.js";
+import { generateThumbnail } from "./thumbnail.js";
 
 async function main() {
   const channel = CHANNELS[ENV.CHANNEL];
@@ -22,17 +23,24 @@ async function main() {
   console.log("Generating script...");
   const script = await generateScript(topic.title, channel);
 
-  // 2. Per-scene voiceover + Veo clip, then mux together
+  // 2. Per-scene voiceover + still image (animated with a pan/zoom), then mux together
   const sceneFiles: string[] = [];
+  const sceneImagePaths: string[] = [];
   for (let i = 0; i < script.scenes.length; i++) {
     const scene = script.scenes[i];
     console.log(`Scene ${i + 1}/${script.scenes.length}: generating voiceover...`);
     const voPath = path.join(tmpDir, `scene_${i}_voice.wav`);
     await generateVoiceover(scene.narration, channel, voPath);
+    const duration = await getAudioDurationSeconds(voPath);
 
-    console.log(`Scene ${i + 1}/${script.scenes.length}: generating Veo clip...`);
+    console.log(`Scene ${i + 1}/${script.scenes.length}: generating scene image...`);
+    const imagePath = path.join(tmpDir, `scene_${i}_image.jpg`);
+    await generateVerifiedSceneImage(scene.imagePrompt, channel, imagePath);
+    sceneImagePaths.push(imagePath);
+
+    console.log(`Scene ${i + 1}/${script.scenes.length}: animating image...`);
     const clipPath = path.join(tmpDir, `scene_${i}_clip.mp4`);
-    await generateClip(scene.veoPrompt, channel, clipPath);
+    await animateImage(imagePath, duration, channel.aspectRatio, clipPath, i);
 
     console.log(`Scene ${i + 1}/${script.scenes.length}: muxing audio + video...`);
     const finalScenePath = path.join(tmpDir, `scene_${i}_final.mp4`);
@@ -49,6 +57,17 @@ async function main() {
   console.log("Uploading to YouTube...");
   const result = await uploadToYouTube(finalPath, script.videoTitle, script.description, channel);
   console.log(`Uploaded: ${result.url}`);
+
+  // 4b. Build and set a custom thumbnail from the first scene's image
+  console.log("Generating thumbnail...");
+  const thumbnailPath = path.join(tmpDir, "thumbnail.jpg");
+  await generateThumbnail(sceneImagePaths[0], script.videoTitle, tmpDir, thumbnailPath);
+  try {
+    await uploadThumbnail(result.videoId, thumbnailPath, channel);
+    console.log("Thumbnail set.");
+  } catch (err) {
+    console.error("Thumbnail upload failed (video is still live without a custom thumbnail):", err);
+  }
 
   // 5. Mark topic done and clean up
   markTopicDone(channel.id, topic.id);

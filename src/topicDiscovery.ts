@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { ENV, type ChannelConfig } from "./config.js";
+import { withRetry } from "./retry.js";
 
 const ai = new GoogleGenAI({ apiKey: ENV.GEMINI_API_KEY });
 
@@ -28,20 +29,23 @@ Look for: recent news mentioning relevant places/figures, upcoming anniversaries
 new discoveries, or subjects with rising public/search interest in the last 30 days.
 List what you find, each with a one-line note on why it's timely right now.`;
 
-  const research = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: researchPrompt,
-    config: { tools: [{ googleSearch: {} }] },
-  });
+  const research = await withRetry(() =>
+    ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: researchPrompt,
+      config: { tools: [{ googleSearch: {} }] },
+    })
+  );
 
   const researchText = research.text ?? "";
   if (!researchText) {
     throw new Error("Topic research returned no results - check GEMINI_API_KEY and quota");
   }
 
-  const structuring = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: `Based on this research:
+  const structuring = await withRetry(() =>
+    ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Based on this research:
 
 ${researchText}
 
@@ -52,8 +56,9 @@ ${existingTitles.map((t) => `- ${t}`).join("\n") || "(none yet)"}
 
 Output ONLY valid JSON, no markdown fences:
 { "topics": [ { "title": string, "rationale": string (one sentence, why this is timely) } ] }`,
-    config: { responseMimeType: "application/json" },
-  });
+      config: { responseMimeType: "application/json" },
+    })
+  );
 
   const text = structuring.text;
   if (!text) throw new Error("Topic structuring returned empty response");

@@ -1,12 +1,32 @@
 {
   "bharatkaal": [
-    { "id": "bk-006", "title": "The Rise of Chandragupta Maurya", "language": "Hindi", "status": "pending" },
-    { "id": "bk-007", "title": "Life in the Indus Valley Civilization", "language": "Hindi", "status": "pending" }
+    {
+      "id": "bk-006",
+      "title": "The Rise of Chandragupta Maurya",
+      "language": "Hindi",
+      "status": "done"
+    },
+    {
+      "id": "bk-007",
+      "title": "Life in the Indus Valley Civilization",
+      "language": "Hindi",
+      "status": "pending"
+    }
   ],
   "heritage_unfolded": [
-    { "id": "hu-001", "title": "The Architecture of the Sun Temple at Konark", "language": "English", "status": "pending" }
+    {
+      "id": "hu-001",
+      "title": "The Architecture of the Sun Temple at Konark",
+      "language": "English",
+      "status": "done"
+    }
   ],
   "bloop_and_boo": [
-    { "id": "bb-006", "title": "Boo Learns to Share His Toys", "language": "English", "status": "pending" }
+    {
+      "id": "bb-006",
+      "title": "Boo Learns to Share His Toys",
+      "language": "English",
+      "status": "done"
+    }
   ]
 }

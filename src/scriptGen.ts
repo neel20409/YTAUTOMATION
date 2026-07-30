@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { ENV, type ChannelConfig } from "./config.js";
+import { withRetry } from "./retry.js";
 
 export interface Scene {
   narration: string; // what the voiceover says for this scene
@@ -30,7 +31,7 @@ export async function generateScript(
   topicTitle: string,
   channel: ChannelConfig
 ): Promise<GeneratedScript> {
-  const systemInstruction = `You are a scriptwriter for the YouTube channel "${channel.displayName}".
+  const systemInstruction = `You are a scriptwriter and visual director for the YouTube channel "${channel.displayName}".
 Write in ${channel.language}. Output ONLY valid JSON, no markdown fences, no commentary.
 
 JSON shape:
@@ -44,23 +45,54 @@ JSON shape:
 
 Rules:
 - Produce exactly ${channel.sceneCount} scenes.
-- Each "narration" is 2-4 sentences of spoken voiceover text in ${channel.language}.
-- Each "imagePrompt" is a cinematic, visual-only description in English for a single still image
-  illustrating that scene (camera angle, setting, lighting, composition).
+- Each "narration" is 2-4 sentences of spoken voiceover text in ${channel.language}. Make it vivid
+  and engaging, not a dry textbook recitation - use sensory, concrete detail and a sense of story.
+- Each "imagePrompt" is a detailed, richly specific visual description in English for a single
+  still image illustrating that scene. Every imagePrompt MUST include:
+    1. A specific camera framing. If this scene's narration centers on a named person's
+       thoughts, feelings, decision, or dialogue, the framing MUST clearly show their face -
+       use "medium shot", "three-quarter shot", or "close-up" (never "wide shot", "aerial
+       view", "over-the-shoulder shot", or any framing where the face would be small, distant,
+       in shadow, or turned away from camera). Reserve wide/aerial framings for scenes that are
+       genuinely about a landscape, army, or setting rather than an individual's character
+       moment. Still vary the framing across scenes rather than repeating the same one twice in
+       a row, but never at the cost of hiding a main character's face in a scene about them.
+    2. Concrete, specific visual subject matter drawn directly from the narration for that scene
+       (specific people, objects, setting details - not generic filler like "a person standing").
+       Name the actual person/place from the topic explicitly (e.g. "Chandragupta Maurya" rather
+       than "the young king") so the image generator isn't left to guess who or what this is.
+       When the face is meant to be visible (see framing rule above), describe their facial
+       expression concretely (e.g. "a determined, unblinking gaze", "a faint, confident smile")
+       so the image generator actually renders a clear, forward-facing face rather than an
+       incidental one.
+    3. Lighting and mood (e.g. "harsh midday sun", "flickering torchlight", "misty dawn light").
+    4. Texture and material detail (e.g. weathered stone, woven fabric, dust in the air) to make
+       the scene feel tangible and specific rather than generic.
+  Image style direction for every imagePrompt: ${channel.imageStyle}
+  IMPORTANT - avoiding wrong iconography: free image generators sometimes default to whichever
+  historical iconography is most common in their training data (e.g. rendering "an ancient ruler
+  on a throne" as Genghis Khan or a generic Mongol/Chinese/European court) when the real subject
+  is a less globally-famous figure. To prevent this, every imagePrompt describing a person or
+  setting from the topic must explicitly state their actual ethnicity/region and era-appropriate
+  attire in concrete terms (e.g. "an Indian Mauryan-era king in a white dhoti and gold armlets",
+  not just "a king on a throne") rather than relying on generic royal/ruler tropes.
 - In imagePrompt text, NEVER use the words "battle", "war", "army attacking", "fight", or name specific
   active religious worship sites. Describe conflict scenes instead as "tense standoff" or "warriors
   standing in formation" and describe temples generically as "an ancient stone temple" rather than
   naming a specific still-active site.
-- Keep narration historically accurate and engaging, avoid dry textbook tone.`;
+- Keep narration historically and factually accurate for the real people, places, and events involved
+  - do not invent events that didn't happen. Vivid and engaging is not the same as fictionalized.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: `Write the script for a video titled: "${topicTitle}"`,
-    config: {
-      systemInstruction,
-      responseMimeType: "application/json",
-    },
-  });
+  const response = await withRetry(() =>
+    ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Write the script for a video titled: "${topicTitle}"`,
+      config: {
+        systemInstruction,
+        responseMimeType: "application/json",
+      },
+    })
+  );
 
   const text = response.text;
   if (!text) throw new Error("Script generation returned empty response");

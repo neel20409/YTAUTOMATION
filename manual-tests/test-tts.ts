@@ -1,5 +1,7 @@
-// Throwaway Phase 1 check: confirms generateVoiceover() writes a playable .wav
-// for the channel's configured voice. Costs one Gemini TTS call.
+// Throwaway Phase 1 check: confirms generateVoiceover() writes a playable .wav using the
+// local, free Piper TTS engine. No cost, no billing, but requires the `piper` binary on
+// PATH (or PIPER_PATH set in .env) and the channel's voice model downloaded into
+// PIPER_VOICES_DIR (default "voices/") - see README "Free-tier setup".
 //
 // Run: npx tsx manual-tests/test-tts.ts
 // Then play manual-tests/out/test-voice.wav and confirm it sounds right.
@@ -21,7 +23,7 @@ async function main() {
     outPath
   );
 
-  console.log(`Wrote voiceover to ${outPath} - play it and confirm voice "${channel.ttsVoice}" sounds right.`);
+  console.log(`Wrote voiceover to ${outPath} - play it and confirm voice "${channel.piperVoice}" sounds right.`);
 }
 
 main().catch((err) => {

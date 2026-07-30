@@ -1,7 +1,7 @@
 {
   "name": "daily-video-pipeline",
   "version": "1.0.0",
-  "description": "Fully automated daily video generation pipeline: script -> voiceover -> Veo video -> stitch -> YouTube upload",
+  "description": "Fully automated daily video generation pipeline (free tier): script -> Piper voiceover -> generated image + pan/zoom -> stitch -> YouTube upload. Paid Veo/Gemini-TTS versions parked in src/paid/ for later.",
   "type": "module",
   "scripts": {
     "pipeline": "tsx src/index.ts",
