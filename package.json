@@ -1,0 +1,25 @@
+{
+  "name": "daily-video-pipeline",
+  "version": "1.0.0",
+  "description": "Fully automated daily video generation pipeline: script -> voiceover -> Veo video -> stitch -> YouTube upload",
+  "type": "module",
+  "scripts": {
+    "pipeline": "tsx src/index.ts",
+    "build": "tsc",
+    "get-youtube-token": "tsx src/getYoutubeToken.ts",
+    "topup-topics": "tsx src/topUpTopics.ts"
+  },
+  "dependencies": {
+    "@google/genai": "^2.14.0",
+    "googleapis": "^173.0.0",
+    "dotenv": "^16.4.5",
+    "open": "^10.1.0",
+    "wav": "^1.0.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "tsx": "^4.16.2",
+    "@types/node": "^20.14.10",
+    "@types/wav": "^1.0.4"
+  }
+}

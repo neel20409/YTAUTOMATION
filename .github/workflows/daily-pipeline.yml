@@ -1,0 +1,56 @@
+name: Daily video pipeline
+
+on:
+  schedule:
+    - cron: "0 4 * * *" # 04:00 UTC daily
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    strategy:
+      # One channel at a time: each run commits data/topics.json back, and running
+      # the matrix in parallel would race on that commit/push.
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        channel: [bharatkaal, heritage_unfolded, bloop_and_boo]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run pipeline for ${{ matrix.channel }}
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REDIRECT_URI: ${{ secrets.YOUTUBE_REDIRECT_URI }}
+          # Each channel is a separate brand account under one Google login, so each
+          # needs its own refresh token - all three are set here, upload.ts picks the
+          # one matching CHANNEL.
+          YOUTUBE_REFRESH_TOKEN_BHARATKAAL: ${{ secrets.YOUTUBE_REFRESH_TOKEN_BHARATKAAL }}
+          YOUTUBE_REFRESH_TOKEN_HERITAGE_UNFOLDED: ${{ secrets.YOUTUBE_REFRESH_TOKEN_HERITAGE_UNFOLDED }}
+          YOUTUBE_REFRESH_TOKEN_BLOOP_AND_BOO: ${{ secrets.YOUTUBE_REFRESH_TOKEN_BLOOP_AND_BOO }}
+          CHANNEL: ${{ matrix.channel }}
+        run: npm run pipeline
+
+      - name: Commit updated topic queue
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/topics.json
+          git diff --cached --quiet && echo "No topic queue changes" || git commit -m "chore: mark topic done for ${{ matrix.channel }} [skip ci]"
+          git pull --rebase origin ${{ github.ref_name }}
+          git push origin HEAD:${{ github.ref_name }}
