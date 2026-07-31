@@ -11,7 +11,8 @@ import { verifyImageMatchesContext } from "./imageVerify.js";
 export async function generateSceneImage(
   prompt: string,
   channel: ChannelConfig,
-  outPath: string
+  outPath: string,
+  maxAttempts = 4
 ): Promise<string> {
   const [width, height] = channel.aspectRatio === "16:9" ? [1280, 720] : [720, 1280];
   // The accuracy anchor is appended here unconditionally (not just requested in scriptGen's
@@ -27,13 +28,31 @@ export async function generateSceneImage(
     `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}` +
     `?width=${width}&height=${height}&nologo=true&model=flux&enhance=true`;
 
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Image generation failed (${response.status}) for prompt: "${prompt}"`);
+  let delayMs = 3000;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} ${response.statusText}`);
+      }
+
+      const buffer = Buffer.from(await response.arrayBuffer());
+      await writeFile(outPath, buffer);
+      return outPath;
+    } catch (err) {
+      if (attempt === maxAttempts) {
+        throw new Error(
+          `Image generation failed after ${maxAttempts} attempts (${err instanceof Error ? err.message : String(err)}) for prompt: "${prompt}"`
+        );
+      }
+      console.warn(
+        `Pollinations image fetch attempt ${attempt}/${maxAttempts} failed (${err instanceof Error ? err.message : String(err)}). Retrying in ${delayMs / 1000}s...`
+      );
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      delayMs *= 2;
+    }
   }
 
-  const buffer = Buffer.from(await response.arrayBuffer());
-  await writeFile(outPath, buffer);
   return outPath;
 }
 
