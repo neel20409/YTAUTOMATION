@@ -2,19 +2,35 @@ export interface RetryOptions {
   maxAttempts?: number;
   initialDelayMs?: number;
   factor?: number;
+  maxDelayMs?: number;
+}
+
+// Every Gemini call in this pipeline (script gen, topic discovery, image verification, shorts
+// scripts) shares one API key's free-tier quota. Since index.ts runs scenes sequentially in a
+// single process, a process-wide minimum spacing between calls is enough to keep normal, non-retried
+// usage under the quota instead of relying on backoff alone to recover from bursts.
+const MIN_CALL_INTERVAL_MS = 6_500; // ~9 req/min, under Gemini free-tier's ~10 req/min cap
+let lastCallAt = 0;
+
+async function throttle(): Promise<void> {
+  const wait = lastCallAt + MIN_CALL_INTERVAL_MS - Date.now();
+  if (wait > 0) await sleep(wait);
+  lastCallAt = Date.now();
 }
 
 /**
  * Retries a Gemini API call on transient errors (429 rate limit, 503 overloaded) with
- * exponential backoff. Free-tier quotas (e.g. Gemini 3 Flash's ~10 requests/minute) get hit
- * in normal bursty usage - without this, a temporary rate limit fails the whole unattended
- * cron run instead of just waiting a bit and succeeding.
+ * exponential backoff, and throttles all calls to a shared minimum interval beforehand (see
+ * MIN_CALL_INTERVAL_MS above) so normal sequential usage doesn't hit the free-tier quota in the
+ * first place. Backoff is deliberately patient (defaults up to ~2 minutes total across attempts)
+ * since this runs in an unattended cron job where waiting out a quota window beats failing the run.
  */
 export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
-  const { maxAttempts = 4, initialDelayMs = 5_000, factor = 3 } = options;
+  const { maxAttempts = 5, initialDelayMs = 8_000, factor = 2, maxDelayMs = 60_000 } = options;
 
   let delay = initialDelayMs;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    await throttle();
     try {
       return await fn();
     } catch (err) {
@@ -23,7 +39,7 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
         `Gemini call failed with a retryable error (attempt ${attempt}/${maxAttempts}), retrying in ${delay / 1000}s...`
       );
       await sleep(delay);
-      delay *= factor;
+      delay = Math.min(delay * factor, maxDelayMs);
     }
   }
   // Unreachable, but keeps TypeScript happy about the return type.

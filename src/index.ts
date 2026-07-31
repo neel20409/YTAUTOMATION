@@ -53,15 +53,17 @@ async function main() {
   const finalPath = path.join(tmpDir, "final.mp4");
   await concatScenes(sceneFiles, tmpDir, finalPath);
 
-  // 4. Upload to YouTube
-  console.log("Uploading to YouTube...");
-  const result = await uploadToYouTube(finalPath, script.videoTitle, script.description, channel);
+  // 4. Upload to YouTube, building the thumbnail image concurrently since it only depends on
+  // data already in hand (first scene image + title) rather than on the upload having finished.
+  console.log("Uploading to YouTube (thumbnail rendering in parallel)...");
+  const thumbnailPath = path.join(tmpDir, "thumbnail.jpg");
+  const [result] = await Promise.all([
+    uploadToYouTube(finalPath, script.videoTitle, script.description, channel),
+    generateThumbnail(sceneImagePaths[0], script.videoTitle, tmpDir, thumbnailPath),
+  ]);
   console.log(`Uploaded: ${result.url}`);
 
-  // 4b. Build and set a custom thumbnail from the first scene's image
-  console.log("Generating thumbnail...");
-  const thumbnailPath = path.join(tmpDir, "thumbnail.jpg");
-  await generateThumbnail(sceneImagePaths[0], script.videoTitle, tmpDir, thumbnailPath);
+  // 4b. Set the (already-rendered) custom thumbnail now that the video has an id.
   try {
     await uploadThumbnail(result.videoId, thumbnailPath, channel);
     console.log("Thumbnail set.");

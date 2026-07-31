@@ -85,7 +85,7 @@ Rules:
 
   const response = await withRetry(() =>
     ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       contents: `Write the script for a video titled: "${topicTitle}"`,
       config: {
         systemInstruction,

@@ -31,7 +31,7 @@ List what you find, each with a one-line note on why it's timely right now.`;
 
   const research = await withRetry(() =>
     ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       contents: researchPrompt,
       config: { tools: [{ googleSearch: {} }] },
     })
@@ -44,7 +44,7 @@ List what you find, each with a one-line note on why it's timely right now.`;
 
   const structuring = await withRetry(() =>
     ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       contents: `Based on this research:
 
 ${researchText}

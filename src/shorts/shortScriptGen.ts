@@ -19,7 +19,7 @@ const ai = new GoogleGenAI({ apiKey: ENV.GEMINI_API_KEY });
 
 /**
  * Generates a short (15-40 second) back-and-forth story for a YouTube Short, told entirely
- * as dialogue between Bloop and Boo. Uses the free-tier gemini-3-flash-preview model.
+ * as dialogue between Bloop and Boo. Uses the free-tier gemini-2.5-flash model.
  */
 export async function generateShortScript(premise: string): Promise<ShortScript> {
   const systemInstruction = `You are writing a YouTube Short script for the channel "Bloop and Boo".
@@ -55,7 +55,7 @@ Rules:
 
   const response = await withRetry(() =>
     ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       contents: `Write the short's dialogue for this story idea: "${premise}"`,
       config: {
         systemInstruction,

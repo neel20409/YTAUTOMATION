@@ -19,6 +19,36 @@
       "title": "The Architecture of the Sun Temple at Konark",
       "language": "English",
       "status": "done"
+    },
+    {
+      "id": "he-002",
+      "title": "Dwarka's Secrets: What Lies Beneath the Waves?",
+      "language": "English",
+      "status": "done"
+    },
+    {
+      "id": "he-003",
+      "title": "Unearthing Keeladi: A Glimpse into Ancient Tamil Nadu's Urban Life",
+      "language": "English",
+      "status": "done"
+    },
+    {
+      "id": "he-004",
+      "title": "The Revival of India's Stepwells: Ancient Solutions for Modern Water Crises",
+      "language": "English",
+      "status": "pending"
+    },
+    {
+      "id": "he-005",
+      "title": "Lost in the Himalayas: The Unveiling of Ladakh's Ancient Population",
+      "language": "English",
+      "status": "pending"
+    },
+    {
+      "id": "he-006",
+      "title": "Onam: Celebrating Kerala's Rich Heritage Through Dance, Art & Tradition",
+      "language": "English",
+      "status": "pending"
     }
   ],
   "bloop_and_boo": [
@@ -27,6 +57,36 @@
       "title": "Boo Learns to Share His Toys",
       "language": "English",
       "status": "done"
+    },
+    {
+      "id": "bl-002",
+      "title": "Bloop and Boo Help a Lost Pet!",
+      "language": "English",
+      "status": "pending"
+    },
+    {
+      "id": "bl-003",
+      "title": "Bloop and Boo Learn About Being Fair",
+      "language": "English",
+      "status": "pending"
+    },
+    {
+      "id": "bl-004",
+      "title": "Bloop and Boo Understand Big Feelings",
+      "language": "English",
+      "status": "pending"
+    },
+    {
+      "id": "bl-005",
+      "title": "Bloop and Boo Make a Difference Together!",
+      "language": "English",
+      "status": "pending"
+    },
+    {
+      "id": "bl-006",
+      "title": "Bloop and Boo's Kindest Day Ever!",
+      "language": "English",
+      "status": "pending"
     }
   ]
 }
