@@ -9,7 +9,7 @@ export interface RetryOptions {
 // scripts) shares one API key's free-tier quota. Since index.ts runs scenes sequentially in a
 // single process, a process-wide minimum spacing between calls is enough to keep normal, non-retried
 // usage under the quota instead of relying on backoff alone to recover from bursts.
-const MIN_CALL_INTERVAL_MS = 6_500; // ~9 req/min, under Gemini free-tier's ~10 req/min cap
+const MIN_CALL_INTERVAL_MS = 12_000; // ~5 req/min, safely under Gemini free-tier's Grounded Search RPM cap
 let lastCallAt = 0;
 
 async function throttle(): Promise<void> {
@@ -26,7 +26,7 @@ async function throttle(): Promise<void> {
  * since this runs in an unattended cron job where waiting out a quota window beats failing the run.
  */
 export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
-  const { maxAttempts = 5, initialDelayMs = 8_000, factor = 2, maxDelayMs = 60_000 } = options;
+  const { maxAttempts = 8, initialDelayMs = 12_000, factor = 1.8, maxDelayMs = 60_000 } = options;
 
   let delay = initialDelayMs;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {

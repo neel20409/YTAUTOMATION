@@ -5,21 +5,27 @@
   "type": "module",
   "scripts": {
     "pipeline": "tsx src/index.ts",
+    "pipeline:all": "tsx src/index.ts --all",
     "build": "tsc",
     "get-youtube-token": "tsx src/getYoutubeToken.ts",
-    "topup-topics": "tsx src/topUpTopics.ts"
+    "topup-topics": "tsx src/topUpTopics.ts",
+    "topup-topics:all": "tsx src/topUpTopics.ts --all",
+    "dashboard": "tsx src/server.ts"
   },
   "dependencies": {
     "@google/genai": "^2.14.0",
-    "googleapis": "^173.0.0",
+    "@gradio/client": "^2.4.0",
+    "@types/express": "^5.0.6",
     "dotenv": "^16.4.5",
+    "express": "^5.2.1",
+    "googleapis": "^173.0.0",
     "open": "^10.1.0",
     "wav": "^1.0.2"
   },
   "devDependencies": {
-    "typescript": "^5.5.4",
-    "tsx": "^4.16.2",
     "@types/node": "^20.14.10",
-    "@types/wav": "^1.0.4"
+    "@types/wav": "^1.0.4",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.4"
   }
 }

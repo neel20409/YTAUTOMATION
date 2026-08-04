@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Automation Studio | Dashboard</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Header Navbar -->
+    <header class="navbar glass">
+      <div class="logo-area">
+        <div class="logo-icon">🎬</div>
+        <div>
+          <h1 class="logo-title">YT Automation Studio</h1>
+          <p class="logo-subtitle">Multi-Channel Video Pipeline & Topic Control</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Channel Selector -->
+        <div class="select-wrapper">
+          <label for="channelFilter">Channel Scope:</label>
+          <select id="channelFilter" class="custom-select">
+            <option value="all">🌐 All Channels</option>
+            <option value="bharatkaal">🇮🇳 BharatKaal</option>
+            <option value="heritage_unfolded">🏛️ Heritage Unfolded</option>
+            <option value="bloop_and_boo">🧸 Bloop and Boo</option>
+          </select>
+        </div>
+
+        <!-- Action Buttons -->
+        <button id="btnTopUp" class="btn btn-secondary">
+          <span class="btn-icon">💡</span>
+          <span>Top Up Topics</span>
+        </button>
+
+        <button id="btnPipeline" class="btn btn-primary">
+          <span class="btn-icon">🚀</span>
+          <span>Generate & Upload</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Stats Overview Cards -->
+      <section class="stats-grid" id="statsGrid">
+        <!-- Rendered dynamically -->
+      </section>
+
+      <!-- Quick Add Topic Section -->
+      <section class="card glass add-topic-card">
+        <div class="card-header">
+          <h2>➕ Add Custom Topic</h2>
+          <span class="badge badge-info">Manual Queue Entry</span>
+        </div>
+        <form id="addTopicForm" class="add-topic-form">
+          <select id="newTopicChannel" class="custom-select" required>
+            <option value="bharatkaal">BharatKaal (Hindi, 16:9)</option>
+            <option value="heritage_unfolded">Heritage Unfolded (English, 16:9)</option>
+            <option value="bloop_and_boo">Bloop and Boo (English, 9:16)</option>
+          </select>
+          <input type="text" id="newTopicTitle" placeholder="Enter video topic title (e.g. The Secrets of Ajanta Caves)" required class="text-input" />
+          <button type="submit" class="btn btn-accent">
+            <span>Add to Queue</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- Main Tabs Section for Topics -->
+      <section class="topics-section">
+        <div class="tabs-header">
+          <div class="tabs-nav">
+            <button class="tab-btn active" data-tab="pending">
+              📌 Pending Topics <span class="tab-count" id="pendingCountBadge">0</span>
+            </button>
+            <button class="tab-btn" data-tab="done">
+              ✅ Done Topics <span class="tab-count" id="doneCountBadge">0</span>
+            </button>
+          </div>
+          <div class="search-box">
+            <input type="text" id="searchInput" placeholder="🔍 Search topics..." class="text-input search-input" />
+          </div>
+        </div>
+
+        <!-- Pending Topics Tab Content -->
+        <div class="tab-content active" id="pendingTab">
+          <div class="topics-list" id="pendingList">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Done Topics Tab Content -->
+        <div class="tab-content" id="doneTab">
+          <div class="topics-list" id="doneList">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Live Execution Log Terminal -->
+      <section class="card glass console-card">
+        <div class="card-header console-header">
+          <div class="console-title">
+            <span class="status-dot" id="statusDot"></span>
+            <h2>Live Pipeline & Execution Log</h2>
+            <span class="badge" id="processBadge">Idle</span>
+          </div>
+          <div class="console-actions">
+            <button id="btnClearLog" class="btn-sm btn-ghost">Clear Console</button>
+          </div>
+        </div>
+        <div class="console-body" id="consoleBody">
+          <div class="log-line info">[System] Studio Console Ready. Click "Top Up Topics" or "Generate & Upload" to begin.</div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>YouTube Automation Studio &bull; Powered by Gemini 3.6 & Piper TTS &bull; Local Automated Pipeline</p>
+    </footer>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

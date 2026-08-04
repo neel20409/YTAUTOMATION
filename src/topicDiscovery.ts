@@ -29,17 +29,23 @@ Look for: recent news mentioning relevant places/figures, upcoming anniversaries
 new discoveries, or subjects with rising public/search interest in the last 30 days.
 List what you find, each with a one-line note on why it's timely right now.`;
 
-  const research = await withRetry(() =>
-    ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: researchPrompt,
-      config: { tools: [{ googleSearch: {} }] },
-    })
-  );
+  let researchText = "";
+  try {
+    const research = await withRetry(() =>
+      ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: researchPrompt,
+        config: { tools: [{ googleSearch: {} }] },
+      })
+    );
+    researchText = research.text ?? "";
+  } catch (err) {
+    console.warn(`[Topic Discovery] Grounded search hit rate limit (${(err as Error).message}). Falling back to direct model knowledge...`);
+    researchText = `Popular and trending subjects for ${channel.topicNiche}`;
+  }
 
-  const researchText = research.text ?? "";
   if (!researchText) {
-    throw new Error("Topic research returned no results - check GEMINI_API_KEY and quota");
+    researchText = `Popular and trending subjects for ${channel.topicNiche}`;
   }
 
   const structuring = await withRetry(() =>

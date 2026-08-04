@@ -152,3 +152,31 @@ export async function concatScenes(
 
   return outPath;
 }
+
+/**
+ * Combines a short AI video clip with TTS audio.
+ * - Automatically loops (-stream_loop -1) the video if narration is longer than the clip.
+ * - Trims output (-shortest) exactly when the voiceover finishes.
+ */
+export async function muxSceneVideoWithAudio(
+  videoClipPath: string,
+  audioPath: string,
+  outputScenePath: string
+): Promise<string> {
+  console.log(`🎙️ [Stitch] Muxing AI video clip with TTS audio: ${path.basename(outputScenePath)}...`);
+
+  await run("ffmpeg", [
+    "-y",
+    "-stream_loop", "-1",
+    "-i", videoClipPath,
+    "-i", audioPath,
+    "-c:v", "libx264",
+    "-c:a", "aac",
+    "-shortest",
+    "-fflags", "+shortest",
+    "-max_interleave_delta", "100M",
+    outputScenePath,
+  ]);
+  console.log(`✅ [Stitch] Scene muxed successfully: ${outputScenePath}`);
+  return outputScenePath;
+}

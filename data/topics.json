@@ -10,6 +10,36 @@
       "id": "bk-007",
       "title": "Life in the Indus Valley Civilization",
       "language": "Hindi",
+      "status": "done"
+    },
+    {
+      "id": "bh-003",
+      "title": "ज्ञानवापी विवाद: ASI रिपोर्ट के ऐतिहासिक रहस्य और दावे",
+      "language": "Hindi",
+      "status": "done"
+    },
+    {
+      "id": "bh-004",
+      "title": "एनसीईआरटी विवाद और मराठा साम्राज्य का गौरवशाली इतिहास",
+      "language": "Hindi",
+      "status": "done"
+    },
+    {
+      "id": "bh-005",
+      "title": "सिंधु घाटी सभ्यता के अनसुलझे रहस्य और नवीनतम खोजें",
+      "language": "Hindi",
+      "status": "done"
+    },
+    {
+      "id": "bh-006",
+      "title": "सम्राट अशोक: मौर्य साम्राज्य का चरम और धम्म नीति का प्रभाव",
+      "language": "Hindi",
+      "status": "pending"
+    },
+    {
+      "id": "bh-007",
+      "title": "गुप्त साम्राज्य: समुद्रगुप्त और विक्रमादित्य के स्वर्णिम युग की गाथा",
+      "language": "Hindi",
       "status": "pending"
     }
   ],
@@ -36,19 +66,19 @@
       "id": "he-004",
       "title": "The Revival of India's Stepwells: Ancient Solutions for Modern Water Crises",
       "language": "English",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "he-005",
       "title": "Lost in the Himalayas: The Unveiling of Ladakh's Ancient Population",
       "language": "English",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "he-006",
       "title": "Onam: Celebrating Kerala's Rich Heritage Through Dance, Art & Tradition",
       "language": "English",
-      "status": "pending"
+      "status": "done"
     }
   ],
   "bloop_and_boo": [
@@ -68,13 +98,13 @@
       "id": "bl-003",
       "title": "Bloop and Boo Learn About Being Fair",
       "language": "English",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "bl-004",
       "title": "Bloop and Boo Understand Big Feelings",
       "language": "English",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "bl-005",

@@ -101,6 +101,15 @@ prompt is built from each channel's `topicNiche` in `config.ts` rather than one 
 
 ```
 npm install
+
+# Start the Web Control Dashboard:
+npm run dashboard
+# Open http://localhost:3000 in your browser to manage topics and run jobs visually!
+
+# Run all channels sequentially in a single command:
+npm run pipeline:all
+
+# Or run a single specific channel:
 CHANNEL=bharatkaal npm run pipeline
 ```
 
