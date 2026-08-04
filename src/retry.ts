@@ -35,8 +35,9 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
       return await fn();
     } catch (err) {
       if (!isRetryable(err) || attempt === maxAttempts) throw err;
+      const errMsg = err instanceof Error ? err.message : String(err);
       console.warn(
-        `Gemini call failed with a retryable error (attempt ${attempt}/${maxAttempts}), retrying in ${delay / 1000}s...`
+        `Gemini call failed (attempt ${attempt}/${maxAttempts}): ${errMsg}. Retrying in ${(delay / 1000).toFixed(1)}s...`
       );
       await sleep(delay);
       delay = Math.min(delay * factor, maxDelayMs);
