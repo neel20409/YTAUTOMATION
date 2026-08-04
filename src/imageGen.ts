@@ -24,9 +24,10 @@ export async function generateSceneImage(
   // model=flux: Pollinations' strongest free general-purpose model (best prompt-following and
   // photorealism). enhance=true: lets Pollinations expand/sharpen the prompt itself before
   // generating, on top of the already-detailed prompts scriptGen.ts writes.
+  const seed = Math.floor(Math.random() * 1000000);
   const url =
-    `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}` +
-    `?width=${width}&height=${height}&nologo=true&model=flux&enhance=true`;
+    `https://pollinations.ai/p/${encodeURIComponent(fullPrompt)}` +
+    `?width=${width}&height=${height}&seed=${seed}&nologo=true&model=flux&enhance=true`;
 
   let delayMs = 3000;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
