@@ -91,6 +91,7 @@ export const CHANNELS: Record<ChannelId, ChannelConfig> = {
 
 export const ENV = {
   GEMINI_API_KEY: requireEnv("GEMINI_API_KEY"),
+  GEMINI_MODEL: process.env.GEMINI_MODEL ?? "gemini-2.0-flash",
   YOUTUBE_CLIENT_ID: process.env.YOUTUBE_CLIENT_ID ?? "",
   YOUTUBE_CLIENT_SECRET: process.env.YOUTUBE_CLIENT_SECRET ?? "",
   YOUTUBE_REDIRECT_URI: process.env.YOUTUBE_REDIRECT_URI ?? "http://localhost:53682/callback",

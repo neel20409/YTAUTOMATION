@@ -163,6 +163,21 @@ body {
   box-shadow: 0 6px 20px 0 var(--primary-glow);
 }
 
+.btn-danger {
+  background: linear-gradient(135deg, #DC2626, #EF4444);
+  color: #FFF;
+  box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.35);
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, #B91C1C, #DC2626);
+  box-shadow: 0 6px 18px 0 rgba(239, 68, 68, 0.45);
+}
+
 .btn-secondary {
   background: linear-gradient(135deg, #059669, #10B981);
   color: #FFF;

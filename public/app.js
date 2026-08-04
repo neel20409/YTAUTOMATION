@@ -20,6 +20,7 @@ const btnTopUp = document.getElementById('btnTopUp');
 const btnPipeline = document.getElementById('btnPipeline');
 const consoleBody = document.getElementById('consoleBody');
 const btnClearLog = document.getElementById('btnClearLog');
+const btnStopProcess = document.getElementById('btnStopProcess');
 const statusDot = document.getElementById('statusDot');
 const processBadge = document.getElementById('processBadge');
 
@@ -283,6 +284,7 @@ function runStreamAction(action) {
 
   btnTopUp.disabled = true;
   btnPipeline.disabled = true;
+  btnStopProcess.style.display = 'inline-flex';
 
   const url = `/api/run-stream?action=${action}&channel=${channel}`;
   state.eventSource = new EventSource(url);
@@ -298,6 +300,7 @@ function runStreamAction(action) {
 
       btnTopUp.disabled = false;
       btnPipeline.disabled = false;
+      btnStopProcess.style.display = 'none';
 
       statusDot.classList.remove('running');
 
@@ -315,6 +318,7 @@ function runStreamAction(action) {
       loadData();
     } else if (data.type === 'error') {
       appendLog(`[Error] ${data.message}`, 'error');
+      btnStopProcess.style.display = 'none';
     }
   };
 
@@ -322,11 +326,34 @@ function runStreamAction(action) {
     appendLog(`[Connection Error] Lost connection to process stream.`, 'error');
     btnTopUp.disabled = false;
     btnPipeline.disabled = false;
+    btnStopProcess.style.display = 'none';
     statusDot.classList.remove('running');
     processBadge.textContent = 'Disconnected';
     if (state.eventSource) state.eventSource.close();
   };
 }
+
+// Stop Running Process Handler
+btnStopProcess.addEventListener('click', async () => {
+  try {
+    appendLog(`\n🛑 [User Action] Terminating running process...`, 'error');
+    if (state.eventSource) {
+      state.eventSource.close();
+      state.eventSource = null;
+    }
+    await fetch('/api/run-stop', { method: 'POST' });
+    btnTopUp.disabled = false;
+    btnPipeline.disabled = false;
+    btnStopProcess.style.display = 'none';
+    statusDot.classList.remove('running');
+    processBadge.textContent = 'Stopped by User';
+    processBadge.className = 'badge badge-pending';
+    appendLog(`❌ Process terminated by user.`, 'error');
+    loadData();
+  } catch (err) {
+    appendLog(`[Error] Failed to stop process: ${err.message}`, 'error');
+  }
+});
 
 btnTopUp.addEventListener('click', () => runStreamAction('topup'));
 btnPipeline.addEventListener('click', () => runStreamAction('pipeline'));

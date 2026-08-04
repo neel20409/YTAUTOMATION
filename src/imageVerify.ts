@@ -25,7 +25,7 @@ export async function verifyImageMatchesContext(
 
   const response = await withRetry(() =>
     ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: ENV.GEMINI_MODEL,
       contents: [
         {
           role: "user",
