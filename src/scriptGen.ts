@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { ENV, type ChannelConfig } from "./config.js";
-import { withRetry } from "./retry.js";
+import { withRetry, getActiveGeminiApiKey } from "./retry.js";
 
 export interface Scene {
   narration: string; // what the voiceover says for this scene
@@ -13,7 +13,9 @@ export interface GeneratedScript {
   scenes: Scene[];
 }
 
-const ai = new GoogleGenAI({ apiKey: ENV.GEMINI_API_KEY });
+function getAiClient() {
+  return new GoogleGenAI({ apiKey: getActiveGeminiApiKey() });
+}
 
 /**
  * Generates a scene-by-scene script for one video.
@@ -84,7 +86,7 @@ Rules:
   - do not invent events that didn't happen. Vivid and engaging is not the same as fictionalized.`;
 
   const response = await withRetry(() =>
-    ai.models.generateContent({
+    getAiClient().models.generateContent({
       model: ENV.GEMINI_MODEL,
       contents: `Write the script for a video titled: "${topicTitle}"`,
       config: {

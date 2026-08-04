@@ -1,9 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { GoogleGenAI } from "@google/genai";
 import { ENV } from "./config.js";
-import { withRetry } from "./retry.js";
+import { withRetry, getActiveGeminiApiKey } from "./retry.js";
 
-const ai = new GoogleGenAI({ apiKey: ENV.GEMINI_API_KEY });
+function getAiClient() {
+  return new GoogleGenAI({ apiKey: getActiveGeminiApiKey() });
+}
 
 export interface VerificationResult {
   matches: boolean;
@@ -50,7 +52,7 @@ export async function verifyImageMatchesContext(
   const mimeType = detectMimeType(imageBytes);
 
   const response = await withRetry(() =>
-    ai.models.generateContent({
+    getAiClient().models.generateContent({
       model: ENV.GEMINI_MODEL,
       contents: [
         {

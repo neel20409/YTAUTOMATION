@@ -90,7 +90,8 @@ export const CHANNELS: Record<ChannelId, ChannelConfig> = {
 };
 
 export const ENV = {
-  GEMINI_API_KEY: requireEnv("GEMINI_API_KEY"),
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY ?? "",
+  GEMINI_API_KEYS: getGeminiApiKeys(),
   GEMINI_MODEL: process.env.GEMINI_MODEL ?? "gemini-3-flash-preview",
   YOUTUBE_CLIENT_ID: process.env.YOUTUBE_CLIENT_ID ?? "",
   YOUTUBE_CLIENT_SECRET: process.env.YOUTUBE_CLIENT_SECRET ?? "",
@@ -101,12 +102,24 @@ export const ENV = {
   PIPER_VOICES_DIR: process.env.PIPER_VOICES_DIR ?? "voices",
 };
 
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
+function getGeminiApiKeys(): string[] {
+  const keys: string[] = [];
+  if (process.env.GEMINI_API_KEYS) {
+    keys.push(...process.env.GEMINI_API_KEYS.split(",").map((k) => k.trim()).filter(Boolean));
   }
-  return value;
+  let idx = 1;
+  while (process.env[`GEMINI_API_KEY_${idx}`]) {
+    keys.push(process.env[`GEMINI_API_KEY_${idx}`]!.trim());
+    idx++;
+  }
+  if (process.env.GEMINI_API_KEY) {
+    keys.push(process.env.GEMINI_API_KEY.trim());
+  }
+  const unique = Array.from(new Set(keys)).filter(Boolean);
+  if (unique.length === 0) {
+    throw new Error("Missing required environment variable: GEMINI_API_KEY (or GEMINI_API_KEYS / GEMINI_API_KEY_1)");
+  }
+  return unique;
 }
 
 /**
@@ -121,4 +134,12 @@ export function refreshTokenEnvVar(channel: ChannelId): string {
 
 export function getYoutubeRefreshToken(channel: ChannelId): string {
   return requireEnv(refreshTokenEnvVar(channel));
+}
+
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
 }

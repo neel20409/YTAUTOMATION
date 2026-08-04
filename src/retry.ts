@@ -18,12 +18,28 @@ async function throttle(): Promise<void> {
   lastCallAt = Date.now();
 }
 
+import { ENV } from "./config.js";
+
+let currentKeyIndex = 0;
+
+export function getActiveGeminiApiKey(): string {
+  const keys = ENV.GEMINI_API_KEYS;
+  if (!keys || keys.length === 0) return ENV.GEMINI_API_KEY;
+  return keys[currentKeyIndex % keys.length];
+}
+
+export function rotateGeminiApiKey(): string {
+  const keys = ENV.GEMINI_API_KEYS;
+  if (keys && keys.length > 1) {
+    currentKeyIndex = (currentKeyIndex + 1) % keys.length;
+    console.log(`\n🔄 [Key Rotation] Switched to Gemini API Key #${currentKeyIndex + 1} of ${keys.length}`);
+  }
+  return getActiveGeminiApiKey();
+}
+
 /**
  * Retries a Gemini API call on transient errors (429 rate limit, 503 overloaded) with
- * exponential backoff, and throttles all calls to a shared minimum interval beforehand (see
- * MIN_CALL_INTERVAL_MS above) so normal sequential usage doesn't hit the free-tier quota in the
- * first place. Backoff is deliberately patient (defaults up to ~2 minutes total across attempts)
- * since this runs in an unattended cron job where waiting out a quota window beats failing the run.
+ * exponential backoff, key rotation, and throttles all calls to a shared minimum interval beforehand.
  */
 export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
   const { maxAttempts = 8, initialDelayMs = 12_000, factor = 1.8, maxDelayMs = 60_000 } = options;
@@ -36,6 +52,7 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
     } catch (err) {
       if (!isRetryable(err) || attempt === maxAttempts) throw err;
       const errMsg = err instanceof Error ? err.message : String(err);
+      rotateGeminiApiKey();
       console.warn(
         `Gemini call failed (attempt ${attempt}/${maxAttempts}): ${errMsg}. Retrying in ${(delay / 1000).toFixed(1)}s...`
       );
@@ -43,7 +60,6 @@ export async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions =
       delay = Math.min(delay * factor, maxDelayMs);
     }
   }
-  // Unreachable, but keeps TypeScript happy about the return type.
   throw new Error("withRetry: exhausted attempts without returning or throwing");
 }
 

@@ -1,8 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
 import { ENV, type ChannelConfig } from "./config.js";
-import { withRetry } from "./retry.js";
+import { withRetry, getActiveGeminiApiKey } from "./retry.js";
 
-const ai = new GoogleGenAI({ apiKey: ENV.GEMINI_API_KEY });
+function getAiClient() {
+  return new GoogleGenAI({ apiKey: getActiveGeminiApiKey() });
+}
 
 export interface DiscoveredTopic {
   title: string;
@@ -32,7 +34,7 @@ List what you find, each with a one-line note on why it's timely right now.`;
   let researchText = "";
   try {
     const research = await withRetry(() =>
-      ai.models.generateContent({
+      getAiClient().models.generateContent({
         model: ENV.GEMINI_MODEL,
         contents: researchPrompt,
         config: { tools: [{ googleSearch: {} }] },
@@ -49,7 +51,7 @@ List what you find, each with a one-line note on why it's timely right now.`;
   }
 
   const structuring = await withRetry(() =>
-    ai.models.generateContent({
+    getAiClient().models.generateContent({
       model: ENV.GEMINI_MODEL,
       contents: `Based on this research:
 
