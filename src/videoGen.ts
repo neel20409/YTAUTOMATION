@@ -22,25 +22,28 @@ export async function generateSceneVideo(
     const hfToken = process.env.HF_TOKEN;
     const client = await Client.connect(
       "multimodalart/stable-video-diffusion",
-      hfToken ? ({ hf_token: hfToken } as any) : undefined
+      hfToken ? ({ token: hfToken } as any) : undefined
     );
     
     const imageBuffer = fs.readFileSync(imagePath);
     const imageBlob = new Blob([imageBuffer]);
 
-    // Submit prediction request
-    const result = await client.predict("/predict", [
-      imageBlob,       // Input image
-      motionPrompt,    // Motion prompt guidance
-      6,               // Motion bucket ID / intensity (lower = subtler)
-      25,              // Target FPS
+    // Submit prediction request to the exact '/video' endpoint
+    const result = await client.predict("/video", [
+      imageBlob,                             // 1. image
+      Math.floor(Math.random() * 1000000),   // 2. seed
+      true,                                  // 3. randomize_seed
+      127,                                   // 4. motion_bucket_id (1-255)
+      12,                                    // 5. fps_id (5-30)
     ]);
 
     clearTimeout(timeoutId);
 
-    const videoUrl = (result.data as any[])?.[0]?.url;
+    const videoData = (result.data as any[])?.[0];
+    const videoUrl = videoData?.url || videoData?.path || (typeof videoData === "string" ? videoData : null);
+
     if (!videoUrl) {
-      throw new Error("No output URL returned from Gradio endpoint.");
+      throw new Error("No output video URL returned from Gradio endpoint.");
     }
     
     // Download generated MP4 clip
