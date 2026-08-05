@@ -50,7 +50,7 @@ async function runPipelineForChannel(channelId: ChannelId) {
     try {
       console.log(`Scene ${i + 1}/${script.scenes.length}: generating AI video clip...`);
       const rawAiVideoClipPath = path.join(tmpDir, `scene_${i}_ai_clip.mp4`);
-      await generateSceneVideo(imagePath, rawAiVideoClipPath, scene.imagePrompt);
+      await generateSceneVideo(imagePath, rawAiVideoClipPath, scene.imagePrompt, channel.aspectRatio);
       await muxSceneVideoWithAudio(rawAiVideoClipPath, voPath, finalScenePath);
     } catch (i2vErr) {
       console.warn(`⚠️ Scene ${i + 1}: AI Image-to-Video generation failed/timed out. Using FFmpeg Ken Burns fallback.`);
