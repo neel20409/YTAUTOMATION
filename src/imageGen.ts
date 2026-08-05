@@ -88,7 +88,7 @@ async function fetchHuggingFaceImage(
   }
 
   const response = await fetch(
-    "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-2-1",
+    "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-3-medium-diffusers",
     {
       method: "POST",
       headers: {
