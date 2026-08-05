@@ -1,4 +1,5 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+dotenv.config({ override: true });
 
 export type ChannelId = "bharatkaal" | "heritage_unfolded" | "bloop_and_boo";
 
