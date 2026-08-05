@@ -1,5 +1,9 @@
+const initialChannel = process.env.CHANNEL;
 import dotenv from "dotenv";
 dotenv.config({ override: true });
+if (initialChannel) {
+  process.env.CHANNEL = initialChannel;
+}
 
 export type ChannelId = "bharatkaal" | "heritage_unfolded" | "bloop_and_boo";
 

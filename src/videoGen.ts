@@ -13,43 +13,54 @@ async function tryHuggingFaceI2V(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 45000);
 
-  try {
-    const hfToken = process.env.HF_TOKEN;
-    const client = await Client.connect(
-      "multimodalart/stable-video-diffusion",
-      hfToken ? ({ token: hfToken } as any) : undefined
-    );
-    const imageBuffer = fs.readFileSync(imagePath);
-    const imageBlob = new Blob([imageBuffer]);
+  const candidateSpaces = [
+    "multimodalart/stable-video-diffusion",
+    "multimodalart/wan2-1-fast",
+  ];
 
-    const result = await client.predict("/video", [
-      imageBlob,
-      Math.floor(Math.random() * 1000000),
-      true,
-      127,
-      12,
-    ]);
+  const hfToken = process.env.HF_TOKEN;
 
-    clearTimeout(timeoutId);
+  for (const spaceName of candidateSpaces) {
+    try {
+      console.log(`🎬 [VideoGen] Connecting to Gradio Space: ${spaceName}...`);
+      const client = await Client.connect(
+        spaceName,
+        hfToken ? ({ token: hfToken } as any) : undefined
+      );
+      const imageBuffer = fs.readFileSync(imagePath);
+      const imageBlob = new Blob([imageBuffer]);
 
-    const videoData = (result.data as any[])?.[0];
-    const videoUrl =
-      videoData?.url || videoData?.path || (typeof videoData === "string" ? videoData : null);
+      const result = await client.predict("/video", [
+        imageBlob,
+        Math.floor(Math.random() * 1000000),
+        true,
+        127,
+        12,
+      ]);
 
-    if (!videoUrl) throw new Error("No URL returned from Hugging Face endpoint.");
+      clearTimeout(timeoutId);
 
-    const response = await fetch(videoUrl, { signal: controller.signal });
-    if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
+      const videoData = (result.data as any[])?.[0];
+      const videoUrl =
+        videoData?.url || videoData?.path || (typeof videoData === "string" ? videoData : null);
 
-    const buffer = Buffer.from(await response.arrayBuffer());
-    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-    fs.writeFileSync(outputPath, buffer);
+      if (!videoUrl) throw new Error(`No URL returned from ${spaceName}`);
 
-    return outputPath;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    throw error;
+      const response = await fetch(videoUrl, { signal: controller.signal });
+      if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`);
+
+      const buffer = Buffer.from(await response.arrayBuffer());
+      fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+      fs.writeFileSync(outputPath, buffer);
+
+      return outputPath;
+    } catch (spaceErr: any) {
+      console.warn(`⚠️ [VideoGen] Space ${spaceName} failed (${spaceErr?.message || spaceErr}). Trying next candidate...`);
+    }
   }
+
+  clearTimeout(timeoutId);
+  throw new Error("All Hugging Face I2V candidate spaces failed.");
 }
 
 /**
