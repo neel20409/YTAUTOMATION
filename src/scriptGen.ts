@@ -85,19 +85,65 @@ Rules:
 - Keep narration historically and factually accurate for the real people, places, and events involved
   - do not invent events that didn't happen. Vivid and engaging is not the same as fictionalized.`;
 
-  const response = await withRetry(() =>
-    getAiClient().models.generateContent({
-      model: ENV.GEMINI_MODEL,
-      contents: `Write the script for a video titled: "${topicTitle}"`,
-      config: {
-        systemInstruction,
-        responseMimeType: "application/json",
-      },
-    })
-  );
+  try {
+    const response = await withRetry(() =>
+      getAiClient().models.generateContent({
+        model: ENV.GEMINI_MODEL,
+        contents: `Write the script for a video titled: "${topicTitle}"`,
+        config: {
+          systemInstruction,
+          responseMimeType: "application/json",
+        },
+      })
+    );
 
-  const text = response.text;
-  if (!text) throw new Error("Script generation returned empty response");
+    const text = response.text;
+    if (!text) throw new Error("Script generation returned empty response");
 
-  return JSON.parse(text) as GeneratedScript;
+    return JSON.parse(text) as GeneratedScript;
+  } catch (geminiErr: any) {
+    console.warn(`⚠️ [ScriptGen] Gemini script generation failed (${geminiErr?.message || geminiErr}). Falling back to Hugging Face Serverless LLM...`);
+    return await generateScriptWithHuggingFace(topicTitle, channel, systemInstruction);
+  }
+}
+
+async function generateScriptWithHuggingFace(
+  topicTitle: string,
+  channel: ChannelConfig,
+  systemInstruction: string
+): Promise<GeneratedScript> {
+  const token = process.env.HF_TOKEN;
+  if (!token) throw new Error("HF_TOKEN is missing for Hugging Face LLM script generator fallback");
+
+  console.log(`🤗 [ScriptGen] Attempting Hugging Face Serverless LLM (Qwen2.5-72B)...`);
+
+  const response = await fetch("https://router.huggingface.co/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "Qwen/Qwen2.5-72B-Instruct",
+      messages: [
+        { role: "system", content: systemInstruction },
+        { role: "user", content: `Write the script for a video titled: "${topicTitle}"` },
+      ],
+      max_tokens: 2000,
+      temperature: 0.7,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HF Serverless LLM returned status: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  let content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error("Hugging Face LLM returned empty response");
+
+  // Clean JSON response (strip markdown fences if model outputs ```json ... ```)
+  content = content.replace(/^```json\s*/i, "").replace(/^```\s*/, "").replace(/```$/, "").trim();
+
+  return JSON.parse(content) as GeneratedScript;
 }
