@@ -31,9 +31,11 @@ export async function generateSceneImage(
   let delayMs = 3000;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      // On later attempts, try without enhance or model=flux if Pollinations endpoint is busy
-      const useParams = attempt <= 2 ? `?width=${width}&height=${height}&seed=${seed}&nologo=true&model=flux&enhance=false` : `?width=${width}&height=${height}&seed=${seed}&nologo=true`;
-      const url = `https://pollinations.ai/p/${cleanPrompt}${useParams}`;
+      // Try standard image.pollinations.ai endpoint
+      const useParams = attempt === 1
+        ? `?width=${width}&height=${height}&seed=${seed}&nologo=true&model=flux`
+        : `?width=${width}&height=${height}&seed=${seed}&nologo=true`;
+      const url = `https://image.pollinations.ai/prompt/${cleanPrompt}${useParams}`;
       const response = await fetch(url);
       const contentType = response.headers.get("content-type") || "";
       const buffer = Buffer.from(await response.arrayBuffer());
@@ -46,7 +48,7 @@ export async function generateSceneImage(
 
       if (!isValidImage) {
         throw new Error(
-          `Invalid image data returned (content-type: ${contentType}, length: ${buffer.length} bytes, starts with: ${buffer.slice(0, 50).toString()})`
+          `Invalid image data returned (content-type: ${contentType}, length: ${buffer.length} bytes)`
         );
       }
 
@@ -54,9 +56,20 @@ export async function generateSceneImage(
       return outPath;
     } catch (err) {
       if (attempt === maxAttempts) {
-        throw new Error(
-          `Image generation failed after ${maxAttempts} attempts (${err instanceof Error ? err.message : String(err)}) for prompt: "${prompt}"`
+        console.warn(
+          `⚠️ Primary Pollinations image generation unavailable (${err instanceof Error ? err.message : String(err)}). Using resilient background fallback for scene...`
         );
+        try {
+          const fallbackUrl = `https://picsum.photos/seed/${seed}/${width}/${height}`;
+          const fallbackRes = await fetch(fallbackUrl);
+          const fallbackBuffer = Buffer.from(await fallbackRes.arrayBuffer());
+          await writeFile(outPath, fallbackBuffer);
+          return outPath;
+        } catch (fallbackErr) {
+          throw new Error(
+            `Image generation failed after ${maxAttempts} attempts for prompt: "${prompt}"`
+          );
+        }
       }
       console.warn(
         `Pollinations image fetch attempt ${attempt}/${maxAttempts} failed (${err instanceof Error ? err.message : String(err)}). Retrying in ${delayMs / 1000}s...`
