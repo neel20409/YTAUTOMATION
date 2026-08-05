@@ -56,26 +56,26 @@ export async function verifyImageMatchesContext(
       model: ENV.GEMINI_MODEL,
       contents: [
         {
-          role: "user",
-          parts: [
-            { inlineData: { mimeType, data: imageBytes.toString("base64") } },
-            {
-              text:
-                `This image was meant to depict: "${expectedContext}"\n\n` +
-                `Check carefully and answer honestly, even if the image looks good overall:\n` +
-                `1. Does it show the correct region/ethnicity/culture with no wrong-culture drift ` +
-                `(e.g. no Mongolian, Chinese, Middle Eastern, or European people/architecture/clothing ` +
-                `if Indian was intended, or vice versa)?\n` +
-                `2. If a specific named person is meant to be the focus, is their face clearly visible - ` +
-                `facing toward or three-quarter toward the camera, not hidden, in shadow, turned away, or ` +
-                `too small/distant to make out?\n` +
-                `3. Does the overall subject matter and setting actually match the description, rather ` +
-                `than being a generic or unrelated scene?\n\n` +
-                `Output ONLY valid JSON, no markdown fences:\n` +
-                `{ "matches": boolean, "issues": string (empty string if matches is true, otherwise a ` +
-                `short, specific, actionable description of what's wrong) }`,
-            },
-          ],
+          inlineData: {
+            mimeType,
+            data: imageBytes.toString("base64"),
+          },
+        },
+        {
+          text:
+            `This image was meant to depict: "${expectedContext}"\n\n` +
+            `Check carefully and answer honestly, even if the image looks good overall:\n` +
+            `1. Does it show the correct region/ethnicity/culture with no wrong-culture drift ` +
+            `(e.g. no Mongolian, Chinese, Middle Eastern, or European people/architecture/clothing ` +
+            `if Indian was intended, or vice versa)?\n` +
+            `2. If a specific named person is meant to be the focus, is their face clearly visible - ` +
+            `facing toward or three-quarter toward the camera, not hidden, in shadow, turned away, or ` +
+            `too small/distant to make out?\n` +
+            `3. Does the overall subject matter and setting actually match the description, rather ` +
+            `than being a generic or unrelated scene?\n\n` +
+            `Output ONLY valid JSON, no markdown fences:\n` +
+            `{ "matches": boolean, "issues": string (empty string if matches is true, otherwise a ` +
+            `short, specific, actionable description of what's wrong) }`,
         },
       ],
       config: { responseMimeType: "application/json" },

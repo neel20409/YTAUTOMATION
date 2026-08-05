@@ -147,6 +147,36 @@
       "title": "Bloop and Boo's Kindest Day Ever!",
       "language": "English",
       "status": "pending"
+    },
+    {
+      "id": "bl-007",
+      "title": "Bloop and Boo Welcome the New Friend",
+      "language": "English",
+      "status": "pending"
+    },
+    {
+      "id": "bl-008",
+      "title": "Bloop and Boo Fix a Broken Mistake",
+      "language": "English",
+      "status": "pending"
+    },
+    {
+      "id": "bl-009",
+      "title": "Bloop and Boo Learn to Wait Their Turn",
+      "language": "English",
+      "status": "pending"
+    },
+    {
+      "id": "bl-010",
+      "title": "Bloop and Boo Practice Saying Thank You",
+      "language": "English",
+      "status": "pending"
+    },
+    {
+      "id": "bl-011",
+      "title": "Bloop and Boo Clean Up Together!",
+      "language": "English",
+      "status": "pending"
     }
   ]
 }

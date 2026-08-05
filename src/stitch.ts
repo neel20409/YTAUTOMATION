@@ -3,7 +3,9 @@ import { promisify } from "node:util";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const run = promisify(execFile);
+const execFileAsync = promisify(execFile);
+const run = (file: string, args: string[]) =>
+  execFileAsync(file, args, { maxBuffer: 50 * 1024 * 1024 });
 
 /**
  * Reads a voiceover's duration so animateImage() can generate a clip that matches it.

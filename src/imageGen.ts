@@ -24,20 +24,32 @@ export async function generateSceneImage(
   // model=flux: Pollinations' strongest free general-purpose model (best prompt-following and
   // photorealism). enhance=true: lets Pollinations expand/sharpen the prompt itself before
   // generating, on top of the already-detailed prompts scriptGen.ts writes.
+  // Pollinations API: use standard encoded prompt URL
   const seed = Math.floor(Math.random() * 1000000);
-  const url =
-    `https://pollinations.ai/p/${encodeURIComponent(fullPrompt)}` +
-    `?width=${width}&height=${height}&seed=${seed}&nologo=true&model=flux&enhance=true`;
+  const cleanPrompt = encodeURIComponent(fullPrompt.slice(0, 500)); // cap length to prevent URL length limits
 
   let delayMs = 3000;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
+      // On later attempts, try without enhance or model=flux if Pollinations endpoint is busy
+      const useParams = attempt <= 2 ? `?width=${width}&height=${height}&seed=${seed}&nologo=true&model=flux&enhance=false` : `?width=${width}&height=${height}&seed=${seed}&nologo=true`;
+      const url = `https://pollinations.ai/p/${cleanPrompt}${useParams}`;
       const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status} ${response.statusText}`);
+      const contentType = response.headers.get("content-type") || "";
+      const buffer = Buffer.from(await response.arrayBuffer());
+
+      // Validate that buffer is actually an image (JPEG, PNG, WebP) and not an HTML/JSON error page
+      const isValidImage =
+        (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) || // JPEG
+        (buffer.length >= 4 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) || // PNG
+        (buffer.length >= 12 && buffer.toString("ascii", 8, 12) === "WEBP"); // WebP
+
+      if (!isValidImage) {
+        throw new Error(
+          `Invalid image data returned (content-type: ${contentType}, length: ${buffer.length} bytes, starts with: ${buffer.slice(0, 50).toString()})`
+        );
       }
 
-      const buffer = Buffer.from(await response.arrayBuffer());
       await writeFile(outPath, buffer);
       return outPath;
     } catch (err) {

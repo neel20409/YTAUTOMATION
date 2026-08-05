@@ -140,6 +140,7 @@ app.get("/api/run-stream", (req, res) => {
     cwd: process.cwd(),
     env,
     shell: true,
+    maxBuffer: 50 * 1024 * 1024,
   });
 
   activeChildProcess = child;
