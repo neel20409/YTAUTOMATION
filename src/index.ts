@@ -1,6 +1,6 @@
 import { mkdir, rm } from "node:fs/promises";
 import path from "node:path";
-import { CHANNELS, ENV, type ChannelId } from "./config.js";
+import { CHANNELS, ENV, getChannelConfig, type ChannelId } from "./config.js";
 import { getNextTopic, markTopicDone } from "./topicQueue.js";
 import { generateScript } from "./scriptGen.js";
 import { generateVoiceover } from "./tts.js";
@@ -11,12 +11,12 @@ import { generateThumbnail } from "./thumbnail.js";
 import { generateSceneVideo } from "./videoGen.js";
 
 async function runPipelineForChannel(channelId: ChannelId) {
-  const channel = CHANNELS[channelId];
+  const channel = getChannelConfig(channelId);
   if (!channel) {
     throw new Error(`Unknown channel ID '${channelId}'. Valid options: ${Object.keys(CHANNELS).join(", ")}`);
   }
   console.log(`\n==================================================`);
-  console.log(`=== Daily pipeline: ${channel.displayName} (${channel.id}) ===`);
+  console.log(`=== Daily pipeline: ${channel.displayName} (${channel.id}) [Format: ${channel.aspectRatio}, Scenes: ${channel.sceneCount}] ===`);
   console.log(`==================================================`);
 
   const topic = getNextTopic(channel.id);

@@ -26,6 +26,34 @@ export interface ChannelConfig {
     // Chanakya) - relying on the LLM to remember this in every scene isn't reliable enough alone.
 }
 
+export function getChannelConfig(id: ChannelId, formatOverride?: string): ChannelConfig {
+  const base = CHANNELS[id];
+  if (!base) throw new Error(`Unknown channel ID '${id}'`);
+
+  const fmt = (
+    formatOverride ||
+    process.env.FORMAT ||
+    process.argv.find((a) => a.startsWith("--format="))?.split("=")[1] ||
+    ""
+  ).toLowerCase();
+
+  if (fmt === "short" || fmt === "shorts" || fmt === "9:16") {
+    return {
+      ...base,
+      aspectRatio: "9:16",
+      sceneCount: 4,
+    };
+  } else if (fmt === "long" || fmt === "longform" || fmt === "16:9") {
+    return {
+      ...base,
+      aspectRatio: "16:9",
+      sceneCount: 6,
+    };
+  }
+
+  return base;
+}
+
 export const CHANNELS: Record<ChannelId, ChannelConfig> = {
   bharatkaal: {
     id: "bharatkaal",
@@ -90,7 +118,10 @@ export const CHANNELS: Record<ChannelId, ChannelConfig> = {
     imageStyle:
       "Warm, colorful children's storybook illustration - soft rounded shapes, gentle lighting, " +
       "and a friendly picture-book aesthetic suitable for young kids. Avoid photorealism.",
-    imageAccuracyAnchor: "", // no real-world historical/cultural accuracy concern for this channel
+    imageAccuracyAnchor:
+      "Characters: Bloop is a round, friendly bright blue plush creature with big curious eyes and a warm smile. " +
+      "Boo is a soft white and pastel-purple friendly floating ghost character. " +
+      "Render strictly as a colorful children's storybook illustration - do NOT render realistic real-world photographs.",
   },
 };
 

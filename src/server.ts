@@ -102,6 +102,7 @@ app.post("/api/run-stop", (req, res) => {
 app.get("/api/run-stream", (req, res) => {
   const action = req.query.action as string; // "topup" or "pipeline"
   const channel = (req.query.channel as string) || "all";
+  const format = (req.query.format as string) || "default";
 
   // If a command is already running, terminate it before starting a new one
   killActiveProcess();
@@ -114,9 +115,9 @@ app.get("/api/run-stream", (req, res) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
 
-  sendEvent({ type: "start", action, channel });
+  sendEvent({ type: "start", action, channel, format });
 
-  const env = { ...process.env };
+  const env: Record<string, string | undefined> = { ...process.env, FORMAT: format };
   if (channel !== "all") {
     env.CHANNEL = channel;
   } else {
@@ -130,6 +131,7 @@ app.get("/api/run-stream", (req, res) => {
   } else if (action === "pipeline") {
     args = ["tsx", "src/index.ts"];
     if (channel === "all") args.push("--all");
+    if (format !== "default") args.push(`--format=${format}`);
   } else {
     sendEvent({ type: "error", message: "Invalid action" });
     res.end();

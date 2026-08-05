@@ -273,9 +273,11 @@ function runStreamAction(action) {
   }
 
   const channel = channelFilter.value;
+  const formatEl = document.getElementById('formatFilter');
+  const format = formatEl ? formatEl.value : 'default';
   const actionLabel = action === 'topup' ? 'Topic Top-Up' : 'Video Generation & Upload';
   appendLog(`\n==================================================`, 'highlight');
-  appendLog(`[Action Started] Launching ${actionLabel} (Scope: ${channel})...`, 'highlight');
+  appendLog(`[Action Started] Launching ${actionLabel} (Scope: ${channel}, Format: ${format})...`, 'highlight');
   appendLog(`==================================================`, 'highlight');
 
   statusDot.classList.add('running');
@@ -286,7 +288,7 @@ function runStreamAction(action) {
   btnPipeline.disabled = true;
   btnStopProcess.style.display = 'inline-flex';
 
-  const url = `/api/run-stream?action=${action}&channel=${channel}`;
+  const url = `/api/run-stream?action=${action}&channel=${channel}&format=${format}`;
   state.eventSource = new EventSource(url);
 
   state.eventSource.onmessage = (event) => {

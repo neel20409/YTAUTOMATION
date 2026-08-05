@@ -18,43 +18,59 @@ function sanitizePrompt(prompt: string): string {
 /**
  * Helper: Fetches from Pollinations and checks for JSON error bodies
  */
+/**
+ * Helper: Fetches from Pollinations free default endpoint with retry backoff
+ */
 async function fetchPollinationsImage(
   prompt: string,
   width: number,
   height: number,
-  model: string,
+  model: string | null,
   targetPath: string
 ): Promise<void> {
-  const encodedPrompt = encodeURIComponent(prompt.slice(0, 400));
+  const encodedPrompt = encodeURIComponent(prompt.slice(0, 350));
   const seed = Math.floor(Math.random() * 1000000);
-  const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&model=${model}&nologo=true&seed=${seed}`;
+  const modelQuery = model ? `&model=${model}` : "";
+  const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}${modelQuery}&nologo=true&seed=${seed}`;
 
-  const response = await fetch(url);
-  const contentType = response.headers.get("content-type") || "";
+  // Retry up to 3 times with backoff if Pollinations reports rate limits or temporary busy
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const response = await fetch(url);
+      const contentType = response.headers.get("content-type") || "";
 
-  if (contentType.includes("application/json")) {
-    const errorJson = await response.text();
-    throw new Error(`Pollinations API error JSON (${model}): ${errorJson.slice(0, 200)}`);
+      if (contentType.includes("application/json")) {
+        const errorJson = await response.text();
+        throw new Error(`Pollinations API JSON error: ${errorJson.slice(0, 200)}`);
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} ${response.statusText}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      const isValidImage =
+        (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) || // JPEG
+        (buffer.length >= 4 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) || // PNG
+        (buffer.length >= 12 && buffer.toString("ascii", 8, 12) === "WEBP"); // WebP
+
+      if (!isValidImage) {
+        throw new Error(`Invalid image payload (length: ${buffer.length} bytes)`);
+      }
+
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      fs.writeFileSync(targetPath, buffer);
+      return;
+    } catch (err: any) {
+      if (attempt < 3 && (err.message.includes("429") || err.message.includes("Queue full"))) {
+        await new Promise((resolve) => setTimeout(resolve, 3000 * attempt));
+      } else {
+        throw err;
+      }
+    }
   }
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} ${response.statusText}`);
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
-  const isValidImage =
-    (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) || // JPEG
-    (buffer.length >= 4 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) || // PNG
-    (buffer.length >= 12 && buffer.toString("ascii", 8, 12) === "WEBP"); // WebP
-
-  if (!isValidImage) {
-    throw new Error(`Invalid image payload returned from Pollinations (length: ${buffer.length} bytes)`);
-  }
-
-  fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-  fs.writeFileSync(targetPath, buffer);
 }
 
 /**
@@ -72,7 +88,7 @@ async function fetchHuggingFaceImage(
   }
 
   const response = await fetch(
-    "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell",
+    "https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-2-1",
     {
       method: "POST",
       headers: {
@@ -81,7 +97,7 @@ async function fetchHuggingFaceImage(
       },
       body: JSON.stringify({
         inputs: prompt,
-        parameters: { width, height, num_inference_steps: 4 },
+        parameters: { width, height },
       }),
     }
   );
@@ -113,20 +129,29 @@ async function fetchHuggingFaceImage(
 }
 
 /**
- * Helper: Picsum stock fallback if all AI generators fail/time out
+ * Helper: Creates a clean thematic SVG gradient canvas if all external APIs fail
  */
-async function fetchPicsumImage(
+async function createThematicFallbackImage(
+  prompt: string,
   width: number,
   height: number,
   targetPath: string
 ): Promise<void> {
-  const seed = Math.floor(Math.random() * 1000);
-  const fallbackUrl = `https://picsum.photos/seed/${seed}/${width}/${height}`;
-  const response = await fetch(fallbackUrl);
-  if (!response.ok) throw new Error(`Picsum fallback returned status ${response.status}`);
-  const arrayBuffer = await response.arrayBuffer();
+  // Return a clean SVG image buffer formatted as an SVG file
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+    <defs>
+      <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#1e1b4b"/>
+        <stop offset="50%" stop-color="#312e81"/>
+        <stop offset="100%" stop-color="#0f172a"/>
+      </linearGradient>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#bg)"/>
+    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#f8fafc" font-family="sans-serif" font-size="28" font-weight="bold">${prompt.slice(0, 40)}...</text>
+  </svg>`;
+
   fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-  fs.writeFileSync(targetPath, Buffer.from(arrayBuffer));
+  fs.writeFileSync(targetPath, Buffer.from(svg, "utf-8"));
 }
 
 /**
@@ -148,32 +173,32 @@ export async function generateSceneImage(
 
   const cleanPrompt = sanitizePrompt(fullPrompt);
 
-  // --- ATTEMPT 1: Pollinations.ai (model=flux) ---
+  // --- ATTEMPT 1: Pollinations.ai (Free Default GPU Endpoint) ---
   try {
-    console.log(`🎨 [ImageGen] Attempt 1: Pollinations (FLUX)...`);
-    await fetchPollinationsImage(cleanPrompt, width, height, "flux", outPath);
+    console.log(`🎨 [ImageGen] Attempt 1: Pollinations Free Tier...`);
+    await fetchPollinationsImage(cleanPrompt, width, height, null, outPath);
     return outPath;
   } catch (err1: any) {
-    console.warn(`⚠️ [ImageGen] Attempt 1 failed: ${err1.message}. Retrying with model=turbo...`);
+    console.warn(`⚠️ [ImageGen] Attempt 1 failed: ${err1.message}. Retrying with model=flux...`);
   }
 
-  // --- ATTEMPT 2: Pollinations.ai (model=turbo) ---
+  // --- ATTEMPT 2: Pollinations.ai (model=flux) ---
   try {
-    console.log(`🎨 [ImageGen] Attempt 2: Pollinations (Turbo)...`);
-    await fetchPollinationsImage(cleanPrompt, width, height, "turbo", outPath);
+    console.log(`🎨 [ImageGen] Attempt 2: Pollinations (FLUX)...`);
+    await fetchPollinationsImage(cleanPrompt, width, height, "flux", outPath);
     return outPath;
   } catch (err2: any) {
-    console.warn(`⚠️ [ImageGen] Attempt 2 failed: ${err2.message}. Switching to Hugging Face FLUX.1...`);
+    console.warn(`⚠️ [ImageGen] Attempt 2 failed: ${err2.message}. Switching to Hugging Face...`);
   }
 
-  // --- ATTEMPT 3: Hugging Face Free Serverless / Stock Fallback ---
+  // --- ATTEMPT 3: Hugging Face Serverless / Thematic Canvas Fallback ---
   try {
-    console.log(`🎨 [ImageGen] Attempt 3: Hugging Face FLUX.1 / Stock Fallback...`);
+    console.log(`🎨 [ImageGen] Attempt 3: Hugging Face Serverless SD 2.1...`);
     await fetchHuggingFaceImage(cleanPrompt, width, height, outPath);
     return outPath;
   } catch (err3: any) {
-    console.warn(`⚠️ [ImageGen] Attempt 3 failed (${err3.message}). Using resilient stock background fallback...`);
-    await fetchPicsumImage(width, height, outPath);
+    console.warn(`⚠️ [ImageGen] Attempt 3 failed (${err3.message}). Using thematic canvas fallback...`);
+    await createThematicFallbackImage(cleanPrompt, width, height, outPath);
     return outPath;
   }
 }
