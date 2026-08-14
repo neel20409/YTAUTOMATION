@@ -1,0 +1,186 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- Auth.js required models (email/password + optional OAuth providers for app login) ---
+// This is the user's login to *our app* - separate from each Channel's own YouTube OAuth
+// grant below, which uses the youtube.upload scope against a specific brand account.
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String? // set when using Credentials (email/password) login
+
+  accounts      Account[]
+  sessions      Session[]
+  channels      Channel[]
+  subscription  Subscription?
+
+  createdAt DateTime @default(now())
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// --- Domain models ---
+
+enum AspectRatio {
+  WIDE // 16:9
+  TALL // 9:16
+}
+
+model Channel {
+  id        String @id @default(cuid())
+  userId    String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  displayName String
+  language    String
+  aspectRatio AspectRatio
+  sceneCount  Int         @default(6)
+
+  // Same fields as video-pipeline's ChannelConfig (config.ts) - persona/style directives fed
+  // into script + image generation prompts.
+  topicNiche          String @db.Text
+  imageStyle          String @db.Text
+  imageAccuracyAnchor String @db.Text
+  ttsVoice            String // paid Gemini TTS prebuilt voice name
+  veoModel            String @default("veo-3.1-fast-generate-preview") // paid Veo model id
+
+  isMadeForKids Boolean @default(false)
+
+  youtubeConnection YoutubeConnection?
+  topics            Topic[]
+  runs              Run[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model YoutubeConnection {
+  id        String  @id @default(cuid())
+  channelId String  @unique
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  youtubeChannelId String // the actual YouTube channel id this grant authorizes
+  refreshTokenEnc  String @db.Text // AES-256-GCM ciphertext (iv+authTag+ciphertext, base64)
+
+  connectedAt DateTime @default(now())
+}
+
+enum TopicStatus {
+  PENDING
+  DONE
+}
+
+model Topic {
+  id        String      @id @default(cuid())
+  channelId String
+  channel   Channel     @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  title  String @db.Text
+  status TopicStatus @default(PENDING)
+
+  runs Run[]
+
+  createdAt DateTime @default(now())
+
+  @@index([channelId, status])
+}
+
+enum RunStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+model Run {
+  id        String    @id @default(cuid())
+  channelId String
+  channel   Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  topicId   String
+  topic     Topic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  status RunStatus @default(QUEUED)
+  stage  String? // e.g. "script", "scene_2_video", "youtube_upload" - mirrors index.ts's stage tracking
+
+  errorMessage String? @db.Text
+  errorStack   String? @db.Text
+
+  videoUrl String?
+
+  createdAt  DateTime  @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+
+  @@index([status])
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+model Subscription {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  stripeCustomerId     String  @unique
+  stripeSubscriptionId String? @unique
+  plan                 String // e.g. "starter", "pro"
+  status               SubscriptionStatus @default(INCOMPLETE)
+
+  videosIncludedPerPeriod Int @default(0)
+  videosUsedThisPeriod    Int @default(0)
+  currentPeriodEnd        DateTime?
+
+  updatedAt DateTime @updatedAt
+}

@@ -1,0 +1,132 @@
+// KEEP IN SYNC WITH web/prisma/schema.prisma - this worker reads/writes the same Postgres
+// database that web/ owns migrations for (web/ is the single source of truth; this worker only
+// ever runs `prisma generate`, never `prisma migrate`). This schema deliberately omits the
+// Auth.js-only models (User, Account, Session, VerificationToken) and the `user` relations on
+// Channel/Subscription, since the worker never needs to traverse into those tables - the actual
+// foreign-key constraints still exist in Postgres from web's migrations regardless of whether
+// this schema declares them. Field-level @default(...)/@updatedAt annotations below must match
+// web's schema exactly, since they describe real column defaults already applied by web's
+// migrations - Prisma needs them declared here too so generated `create`/`createMany` input
+// types correctly treat those fields as optional.
+//
+// TODO once this settles down: move this schema into a shared workspace package (e.g.
+// packages/db) that both web/ and worker/ depend on, so there's exactly one schema file instead
+// of two kept in sync by hand.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AspectRatio {
+  WIDE // 16:9
+  TALL // 9:16
+}
+
+model Channel {
+  id     String @id @default(cuid())
+  userId String
+
+  displayName String
+  language    String
+  aspectRatio AspectRatio
+  sceneCount  Int @default(6)
+
+  topicNiche          String
+  imageStyle          String
+  imageAccuracyAnchor String
+  ttsVoice            String
+  veoModel            String @default("veo-3.1-fast-generate-preview")
+
+  isMadeForKids Boolean @default(false)
+
+  youtubeConnection YoutubeConnection?
+  topics            Topic[]
+  runs              Run[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model YoutubeConnection {
+  id        String  @id @default(cuid())
+  channelId String  @unique
+  channel   Channel @relation(fields: [channelId], references: [id])
+
+  youtubeChannelId String
+  refreshTokenEnc  String
+
+  connectedAt DateTime @default(now())
+}
+
+enum TopicStatus {
+  PENDING
+  DONE
+}
+
+model Topic {
+  id        String  @id @default(cuid())
+  channelId String
+  channel   Channel @relation(fields: [channelId], references: [id])
+
+  title  String
+  status TopicStatus @default(PENDING)
+
+  runs Run[]
+
+  createdAt DateTime @default(now())
+}
+
+enum RunStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+model Run {
+  id        String  @id @default(cuid())
+  channelId String
+  channel   Channel @relation(fields: [channelId], references: [id])
+  topicId   String
+  topic     Topic   @relation(fields: [topicId], references: [id])
+
+  status RunStatus @default(QUEUED)
+  stage  String?
+
+  errorMessage String?
+  errorStack   String?
+
+  videoUrl String?
+
+  createdAt  DateTime  @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+model Subscription {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  stripeCustomerId     String
+  stripeSubscriptionId String?
+  plan                 String
+  status               SubscriptionStatus @default(INCOMPLETE)
+
+  videosIncludedPerPeriod Int @default(0)
+  videosUsedThisPeriod    Int @default(0)
+  currentPeriodEnd        DateTime?
+
+  updatedAt DateTime @updatedAt
+}

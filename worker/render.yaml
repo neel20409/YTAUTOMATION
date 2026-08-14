@@ -1,0 +1,41 @@
+# Render Blueprint - deploys this repo as a background worker (not a web service, since it only
+# polls Postgres, never listens on a port) plus a managed Postgres database.
+#
+# One-time setup once this repo is pushed to GitHub: in the Render dashboard, "New +" ->
+# "Blueprint", point it at this repo. Render reads this file and provisions both resources.
+# Env vars marked `sync: false` prompt for a value during that setup - have these ready:
+#   GEMINI_API_KEY, YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, TOKEN_ENCRYPTION_KEY
+# TOKEN_ENCRYPTION_KEY must be the exact same value as web/'s TOKEN_ENCRYPTION_KEY (see
+# web/.env.example) - it's how the worker decrypts refresh tokens web/ encrypted.
+#
+# SKIP_USAGE_CAP is set to "true" here deliberately - single-operator use, no Stripe billing
+# turned on for real users yet (see src/poller.ts). Flip to "false" (or remove) once other
+# people are actually using this and the Stripe-driven cap should apply.
+
+databases:
+  - name: ytauto-postgres
+    plan: basic-256mb # cheapest paid tier - keeps data indefinitely with backups, unlike free
+    databaseName: ytauto
+    user: ytauto
+
+services:
+  - type: worker
+    name: ytauto-worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ytauto-postgres
+          property: connectionString
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: YOUTUBE_CLIENT_ID
+        sync: false
+      - key: YOUTUBE_CLIENT_SECRET
+        sync: false
+      - key: TOKEN_ENCRYPTION_KEY
+        sync: false
+      - key: SKIP_USAGE_CAP
+        value: "true"
