@@ -13,6 +13,7 @@
     "dashboard": "tsx src/server.ts"
   },
   "dependencies": {
+    "@fal-ai/client": "^1.10.1",
     "@google/genai": "^2.14.0",
     "@gradio/client": "^2.4.0",
     "@types/express": "^5.0.6",

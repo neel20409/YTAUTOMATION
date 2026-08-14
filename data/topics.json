@@ -40,6 +40,66 @@
       "id": "bh-007",
       "title": "गुप्त साम्राज्य: समुद्रगुप्त और विक्रमादित्य के स्वर्णिम युग की गाथा",
       "language": "Hindi",
+      "status": "done"
+    },
+    {
+      "id": "bh-008",
+      "title": "चोल साम्राज्य का नौसेना बल: राजेंद्र चोल प्रथम का दक्षिण-पूर्व एशिया विजय अभियान",
+      "language": "Hindi",
+      "status": "done"
+    },
+    {
+      "id": "bh-009",
+      "title": "पानीपत का प्रथम युद्ध (1526): बाबर की तोपखाना रणनीति और लोधी साम्राज्य का अंत",
+      "language": "Hindi",
+      "status": "done"
+    },
+    {
+      "id": "bh-010",
+      "title": "विजयनगर साम्राज्य का स्वर्णिम काल: सम्राट कृष्णदेवराय और हम्पी का वैभव",
+      "language": "Hindi",
+      "status": "done"
+    },
+    {
+      "id": "bh-011",
+      "title": "सम्राट हर्षवर्धन: अंतिम महान प्राचीन भारतीय सम्राट और कन्नौज का उत्थान",
+      "language": "Hindi",
+      "status": "done"
+    },
+    {
+      "id": "bh-012",
+      "title": "रज़िया सुल्तान: दिल्ली सल्तनत की पहली महिला शासक का संघर्ष और पतन",
+      "language": "Hindi",
+      "status": "done"
+    },
+    {
+      "id": "bh-013",
+      "title": "सरायघाट का युद्ध (1671): लचित बोरफुकन ने अहोम साम्राज्य में मुगलों को कैसे धूल चटाई?",
+      "language": "Hindi",
+      "status": "done"
+    },
+    {
+      "id": "bh-014",
+      "title": "तराइन का दूसरा युद्ध (1192): वह निर्णायक मोड़ जिसने भारत का इतिहास बदल दिया",
+      "language": "Hindi",
+      "status": "pending"
+    },
+    {
+      "id": "bh-015",
+      "title": "सम्राट कनिष्क और कुषाण साम्राज्य: जब भारत से मध्य एशिया तक था अखंड व्यापार और बौद्ध धर्म का प्रभाव",
+      "language": "Hindi",
+      "status": "pending"
+    },
+    {
+      "id": "bh-016",
+      "title": "लोकमाता अहिल्याबाई होल्कर: कुशल सैन्य रणनीति और भारत भर के मंदिरों के पुनरुद्धार की महागाथा",
+      "language": "Hindi",
+      "status": "pending"
+    },
+    {
+      "id": "bh-017",
+      "title": "राजस्थान का महायुद्ध (738 CE): जब बप्पा रावल और नागभट्ट प्रथम ने रोका था अरबों का आक्रमण",
+      "language": "Hindi",
       "status": "pending"
     }
   ],
@@ -84,29 +144,59 @@
       "id": "he-007",
       "title": "The Monolith of Ellora: How Ancient Engineers Carved the Kailasa Temple Downwards",
       "language": "English",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "he-008",
       "title": "The Great Wall of India: Exploring the Unmatched Defenses of Kumbhalgarh Fort",
       "language": "English",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "he-009",
       "title": "Rani ki Vav: The Sacred Geometry of the World’s Only Inverted Temple",
       "language": "English",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "he-010",
       "title": "Resurrecting the Harappan Legacy: New Archaeological Breakthroughs at Rakhigarhi",
       "language": "English",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "he-011",
       "title": "Hampi’s Musical Pillars: Acoustic Engineering in the Heart of the Vijayanagara Empire",
+      "language": "English",
+      "status": "done"
+    },
+    {
+      "id": "he-012",
+      "title": "The Floating Bricks of Ramappa: Inside India's Earthquake-Proof Medieval Wonder",
+      "language": "English",
+      "status": "done"
+    },
+    {
+      "id": "he-013",
+      "title": "Daulatabad Fort: The Unconquerable Citadel Built on Psychological Warfare",
+      "language": "English",
+      "status": "pending"
+    },
+    {
+      "id": "he-014",
+      "title": "Chand Baori: Decoding the Impossible Geometry of India’s Deepest Stepwell",
+      "language": "English",
+      "status": "pending"
+    },
+    {
+      "id": "he-015",
+      "title": "The Warrior Tombs of Sinauli: Rewriting Bronze Age Military History",
+      "language": "English",
+      "status": "pending"
+    },
+    {
+      "id": "he-016",
+      "title": "Brihadisvara Temple: The 80-Ton Granite Mystery of Tanjore's Shadowless Vimana",
       "language": "English",
       "status": "pending"
     }
@@ -164,19 +254,49 @@
       "id": "bl-009",
       "title": "Bloop and Boo Learn to Wait Their Turn",
       "language": "English",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "bl-010",
       "title": "Bloop and Boo Practice Saying Thank You",
       "language": "English",
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "bl-011",
       "title": "Bloop and Boo Clean Up Together!",
       "language": "English",
-      "status": "pending"
+      "status": "done"
+    },
+    {
+      "id": "bl-012",
+      "title": "Bloop and Boo Try Something New at Snack Time",
+      "language": "English",
+      "status": "done"
+    },
+    {
+      "id": "bl-013",
+      "title": "Bloop and Boo Discover the Magic of Outdoor Play",
+      "language": "English",
+      "status": "done"
+    },
+    {
+      "id": "bl-014",
+      "title": "Bloop and Boo Learn the Power of Gentle Voices",
+      "language": "English",
+      "status": "done"
+    },
+    {
+      "id": "bl-015",
+      "title": "Bloop and Boo's Peaceful Bedtime Routine",
+      "language": "English",
+      "status": "done"
+    },
+    {
+      "id": "bl-016",
+      "title": "Bloop and Boo Practice Active Listening",
+      "language": "English",
+      "status": "done"
     }
   ]
 }

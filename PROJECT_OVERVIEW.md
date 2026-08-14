@@ -69,9 +69,16 @@ The pipeline currently automates **three distinct brand accounts** under one Goo
 - **Cultural Accuracy Anchors**: Appends explicit regional guardrails (`imageAccuracyAnchor` in `config.ts`) to prevent AI drift (e.g. rendering Indian historical rulers with incorrect Central Asian or European attire).
 - **Gemini Vision Verification**: Validates generated images using Gemini's vision model. If inaccurate, it auto-regenerates with corrected prompt directives.
 
-### 🎬 E. Video Motion & Stitching (`src/stitch.ts`)
-- Cycles through **Ken Burns pan/zoom motion presets** (Zoom In, Zoom Out, Pan Left, Pan Right) via `ffmpeg` so scenes have dynamic visual motion.
+### 🎬 E. AI Video Generation & Motion Stitching (`src/videoGen.ts`, `src/stitch.ts`)
+- **4-Tier Resilient Video Engine**:
+  - **Tier 0A (Luma Dream Machine - Ray 2)**: If `LUMAAI_API_KEY` is set in `.env`, generates ultra-realistic photorealistic AI video clips via Luma AI's API.
+  - **Tier 0B (ByteDance Seedance 2.0 / fal.ai)**: If `FAL_KEY` is set in `.env`, generates multimodal AI video clips using ByteDance's Seedance 2.0 model via fal.ai API.
+  - **Tier 1 (Hugging Face ZeroGPU)**: Free open-source Image-to-Video models (`wan2-1-fast` & `stable-video-diffusion` via `@gradio/client`).
+  - **Tier 2 (FFmpeg Ken Burns Fallback)**: Applies dynamic pan/zoom motion presets if cloud AI video endpoints time out or are unconfigured.
+- Features automatic multi-key rotation and key shifting across all paid tiers.
 - Muxes scene audio with video and concatenates all scenes into a final `.mp4`.
+
+
 
 ### 🖼️ F. Thumbnail Creation & YouTube Upload (`src/thumbnail.ts`, `src/upload.ts`)
 - **Thumbnail Engine**: Automatically takes scene #1, crops to 16:9, and renders high-impact bold typography with a semi-transparent legibility background using the bundled `Anton-Regular.ttf` font.
