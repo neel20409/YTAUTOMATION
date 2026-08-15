@@ -1,0 +1,48 @@
+name: Worker (process queued video runs)
+
+on:
+  schedule:
+    - cron: "*/15 * * * *" # every 15 minutes
+  workflow_dispatch: {}
+
+concurrency:
+  # Postgres's FOR UPDATE SKIP LOCKED claim query is safe against overlap either way, but
+  # serializing avoids two runs burning Action minutes racing over the same small queue.
+  group: worker
+  cancel-in-progress: false
+
+jobs:
+  run-once:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Process queued runs
+        env:
+          DATABASE_URL: ${{ secrets.WORKER_DATABASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          TOKEN_ENCRYPTION_KEY: ${{ secrets.TOKEN_ENCRYPTION_KEY }}
+          SKIP_USAGE_CAP: "true"
+          # Leaves headroom under the job's 30-minute timeout for setup/teardown, rather than
+          # racing the hard cutoff mid-upload.
+          TIME_BUDGET_MS: "1500000" # 25 minutes
+        run: npm run run-once

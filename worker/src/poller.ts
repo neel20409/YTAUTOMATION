@@ -1,7 +1,15 @@
 import { prisma } from "./db.js";
 import { runJob } from "./pipeline.js";
 
-const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS ?? 5_000);
+// Read lazily (function, not a module-level const) for the same reason db.ts's PrismaClient is
+// lazy: ES module imports are evaluated before any top-level code in the importing module runs,
+// so a frozen `const X = process.env.X` here would capture `undefined` whenever this module is
+// imported before the entrypoint's dotenv call executes - regardless of source line order. This
+// bit real: SKIP_USAGE_CAP silently evaluated to false even with .env.local setting it to
+// "true", because poller.js's import gets hoisted ahead of runOnce.ts's/index.ts's loadEnv().
+function pollIntervalMs(): number {
+  return Number(process.env.POLL_INTERVAL_MS ?? 5_000);
+}
 
 /**
  * Atomically claims the oldest queued Run using Postgres's standard job-queue pattern
@@ -24,10 +32,12 @@ const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS ?? 5_000);
  * to be deliberately opted into, not something that silently ends up on in a real multi-tenant
  * deployment.
  */
-const SKIP_USAGE_CAP = process.env.SKIP_USAGE_CAP === "true";
+function skipUsageCap(): boolean {
+  return process.env.SKIP_USAGE_CAP === "true";
+}
 
-async function claimNextRun(): Promise<string | null> {
-  const claimed = SKIP_USAGE_CAP
+export async function claimNextRun(): Promise<string | null> {
+  const claimed = skipUsageCap()
     ? await prisma.$queryRaw<{ id: string }[]>`
         UPDATE "Run" SET status = 'RUNNING', "startedAt" = now()
         WHERE id = (
@@ -57,7 +67,7 @@ async function claimNextRun(): Promise<string | null> {
   return claimed[0]?.id ?? null;
 }
 
-async function processRun(runId: string): Promise<void> {
+export async function processRun(runId: string): Promise<void> {
   const run = await prisma.run.findUniqueOrThrow({
     where: { id: runId },
     include: { channel: { include: { youtubeConnection: true } }, topic: true },
@@ -90,7 +100,8 @@ async function processRun(runId: string): Promise<void> {
 }
 
 export async function startPolling(signal: AbortSignal): Promise<void> {
-  console.log(`Worker polling every ${POLL_INTERVAL_MS}ms for queued runs...`);
+  const intervalMs = pollIntervalMs();
+  console.log(`Worker polling every ${intervalMs}ms for queued runs...`);
   while (!signal.aborted) {
     let runId: string | null = null;
     try {
@@ -104,7 +115,7 @@ export async function startPolling(signal: AbortSignal): Promise<void> {
       continue; // check for another queued run immediately rather than waiting a full interval
     }
 
-    await sleep(POLL_INTERVAL_MS, signal);
+    await sleep(intervalMs, signal);
   }
 }
 
