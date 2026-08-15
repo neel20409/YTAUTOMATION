@@ -17,10 +17,14 @@ function getAiClient() {
   return new GoogleGenAI({ apiKey: getGeminiApiKey() });
 }
 
-// gemini-pro-latest is a stable alias Google keeps pointed at their current recommended pro
-// model, rather than a dated/preview model name that goes stale and 404s once deprecated (which
-// is exactly what happened to the specific "gemini-3-pro-preview" name this used to hardcode).
+// Tries the pro model first (better writing quality), falls back to flash if pro fails - which
+// includes the case where billing isn't enabled on the Google Cloud project yet: pro-tier models
+// have a hard 0 free-tier quota, while flash models have real free-tier access. Both are stable
+// aliases Google keeps pointed at their current recommended model, not dated/preview names that
+// 404 once deprecated (which is what happened to the "gemini-3-pro-preview" this used to
+// hardcode).
 const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-pro-latest";
+const GEMINI_MODEL_FALLBACK = process.env.GEMINI_MODEL_FALLBACK ?? "gemini-flash-latest";
 
 /**
  * Generates a scene-by-scene script for one video. Ported from video-pipeline/src/scriptGen.ts,
@@ -78,16 +82,28 @@ Rules:
   - do not invent events that didn't happen. Vivid and engaging is not the same as fictionalized.
 ${channel.imageAccuracyAnchor}`;
 
-  const response = await withRetry(() =>
-    getAiClient().models.generateContent({
-      model: GEMINI_MODEL,
-      contents: `Write the script for a video titled: "${topicTitle}"`,
-      config: {
-        systemInstruction,
-        responseMimeType: "application/json",
-      },
-    })
-  );
+  const prompt = `Write the script for a video titled: "${topicTitle}"`;
+
+  let response;
+  try {
+    response = await withRetry(() =>
+      getAiClient().models.generateContent({
+        model: GEMINI_MODEL,
+        contents: prompt,
+        config: { systemInstruction, responseMimeType: "application/json" },
+      })
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`⚠️ [ScriptGen] ${GEMINI_MODEL} failed (${message}). Falling back to ${GEMINI_MODEL_FALLBACK}...`);
+    response = await withRetry(() =>
+      getAiClient().models.generateContent({
+        model: GEMINI_MODEL_FALLBACK,
+        contents: prompt,
+        config: { systemInstruction, responseMimeType: "application/json" },
+      })
+    );
+  }
 
   const text = response.text;
   if (!text) throw new Error("Script generation returned empty response");

@@ -8,7 +8,7 @@ import { generateVoiceover } from "./paid/tts.js";
 import { generateSceneImage } from "./paid/imageGen.js";
 import { verifyImageMatchesContext } from "./imageVerify.js";
 import { generateClip } from "./paid/veo.js";
-import { muxSceneVideoWithAudio, concatScenes } from "./stitch.js";
+import { muxSceneVideoWithAudio, muxSceneAudio, animateImage, concatScenes, getAudioDurationSeconds } from "./stitch.js";
 import { generateThumbnail } from "./thumbnail.js";
 import { uploadToYouTube, uploadThumbnail } from "./upload.js";
 import { markTopicDone } from "./topics.js";
@@ -23,13 +23,14 @@ export interface RunJob {
 /**
  * Runs one queued Run end to end: script -> per-scene (voiceover, image, Veo clip, mux) ->
  * stitch -> upload -> thumbnail -> mark topic done -> cleanup. DB-driven version of
- * video-pipeline/src/index.ts's runPipelineForChannel, with two deliberate differences:
+ * video-pipeline/src/index.ts's runPipelineForChannel.
  *
- * 1. No free-tier fallback chain (no Ken Burns pan/zoom, no Piper, no Pollinations/HF image
- *    fallback) - a paid Veo/Imagen/Gemini-TTS failure should fail the Run cleanly so it's
- *    retryable, not silently degrade to a worse result for a paying customer.
- * 2. Progress is written to the Run row's `stage` column (see setStage below) instead of a
- *    tmp/error.json file, so it's queryable from the dashboard instead of the filesystem.
+ * Each generation step (script, image, video, TTS) tries the paid model first and falls back to
+ * a free-tier path if it fails - most importantly, before billing is enabled on the Google Cloud
+ * project (Veo/Imagen/Gemini-TTS have zero free-tier quota, so without a fallback every run
+ * would fail outright until billing is turned on). Progress is written to the Run row's `stage`
+ * column (see setStage below) instead of a tmp/error.json file, so it's queryable from the
+ * dashboard instead of the filesystem.
  */
 export async function runJob(job: RunJob): Promise<{ videoUrl: string }> {
   const channel = job.channel;
@@ -83,11 +84,18 @@ export async function runJob(job: RunJob): Promise<{ videoUrl: string }> {
     if (i === 0) firstSceneImagePath = imagePath;
 
     await setStage(`scene_${i}_video`);
-    const rawClipPath = path.join(tmpDir, `scene_${i}_clip.mp4`);
-    await generateClip(scene.imagePrompt, channelConfig, rawClipPath);
-
     const finalScenePath = path.join(tmpDir, `scene_${i}_final.mp4`);
-    await muxSceneVideoWithAudio(rawClipPath, voPath, finalScenePath);
+    try {
+      const rawClipPath = path.join(tmpDir, `scene_${i}_clip.mp4`);
+      await generateClip(scene.imagePrompt, channelConfig, rawClipPath);
+      await muxSceneVideoWithAudio(rawClipPath, voPath, finalScenePath);
+    } catch (err) {
+      console.warn(`⚠️ Scene ${i}: Veo generation failed (${err}). Falling back to Ken Burns pan/zoom.`);
+      const duration = await getAudioDurationSeconds(voPath);
+      const kenBurnsPath = path.join(tmpDir, `scene_${i}_kb_clip.mp4`);
+      await animateImage(imagePath, duration, channelConfig.aspectRatio, kenBurnsPath, i);
+      await muxSceneAudio(kenBurnsPath, voPath, finalScenePath);
+    }
     sceneFiles.push(finalScenePath);
   }
 

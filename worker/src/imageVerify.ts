@@ -2,9 +2,10 @@ import { readFile } from "node:fs/promises";
 import { GoogleGenAI } from "@google/genai";
 import { withRetry, getGeminiApiKey } from "./retry.js";
 
-// See scriptGen.ts - gemini-pro-latest is a stable alias, not a dated preview name that 404s
-// once deprecated.
+// See scriptGen.ts - tries pro first, falls back to flash (real free-tier quota, unlike pro's
+// hard 0) if pro fails, e.g. before billing is enabled.
 const GEMINI_VISION_MODEL = process.env.GEMINI_MODEL ?? "gemini-pro-latest";
+const GEMINI_VISION_MODEL_FALLBACK = process.env.GEMINI_MODEL_FALLBACK ?? "gemini-flash-latest";
 
 function getAiClient() {
   return new GoogleGenAI({ apiKey: getGeminiApiKey() });
@@ -36,29 +37,44 @@ export async function verifyImageMatchesContext(
   const imageBytes = await readFile(imagePath);
   const mimeType = detectMimeType(imageBytes);
 
-  const response = await withRetry(() =>
-    getAiClient().models.generateContent({
-      model: GEMINI_VISION_MODEL,
-      contents: [
-        { inlineData: { mimeType, data: imageBytes.toString("base64") } },
-        {
-          text:
-            `This image was meant to depict: "${expectedContext}"\n\n` +
-            `Check carefully and answer honestly, even if the image looks good overall:\n` +
-            `1. Does it show the correct region/ethnicity/culture with no wrong-culture drift?\n` +
-            `2. If a specific named person is meant to be the focus, is their face clearly visible - ` +
-            `facing toward or three-quarter toward the camera, not hidden, in shadow, turned away, or ` +
-            `too small/distant to make out?\n` +
-            `3. Does the overall subject matter and setting actually match the description, rather ` +
-            `than being a generic or unrelated scene?\n\n` +
-            `Output ONLY valid JSON, no markdown fences:\n` +
-            `{ "matches": boolean, "issues": string (empty string if matches is true, otherwise a ` +
-            `short, specific, actionable description of what's wrong) }`,
-        },
-      ],
-      config: { responseMimeType: "application/json" },
-    })
-  );
+  const contents = [
+    { inlineData: { mimeType, data: imageBytes.toString("base64") } },
+    {
+      text:
+        `This image was meant to depict: "${expectedContext}"\n\n` +
+        `Check carefully and answer honestly, even if the image looks good overall:\n` +
+        `1. Does it show the correct region/ethnicity/culture with no wrong-culture drift?\n` +
+        `2. If a specific named person is meant to be the focus, is their face clearly visible - ` +
+        `facing toward or three-quarter toward the camera, not hidden, in shadow, turned away, or ` +
+        `too small/distant to make out?\n` +
+        `3. Does the overall subject matter and setting actually match the description, rather ` +
+        `than being a generic or unrelated scene?\n\n` +
+        `Output ONLY valid JSON, no markdown fences:\n` +
+        `{ "matches": boolean, "issues": string (empty string if matches is true, otherwise a ` +
+        `short, specific, actionable description of what's wrong) }`,
+    },
+  ];
+
+  let response;
+  try {
+    response = await withRetry(() =>
+      getAiClient().models.generateContent({
+        model: GEMINI_VISION_MODEL,
+        contents,
+        config: { responseMimeType: "application/json" },
+      })
+    );
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`⚠️ [ImageVerify] ${GEMINI_VISION_MODEL} failed (${message}). Falling back to ${GEMINI_VISION_MODEL_FALLBACK}...`);
+    response = await withRetry(() =>
+      getAiClient().models.generateContent({
+        model: GEMINI_VISION_MODEL_FALLBACK,
+        contents,
+        config: { responseMimeType: "application/json" },
+      })
+    );
+  }
 
   const text = response.text;
   if (!text) throw new Error("Image verification returned empty response");

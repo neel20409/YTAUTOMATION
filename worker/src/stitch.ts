@@ -74,6 +74,55 @@ export async function concatScenes(
 }
 
 /**
+ * Distinct Ken Burns motion presets, expressed in terms of zoompan's `on` (current output
+ * frame). Cycled per scene so a whole video isn't just the same zoom-in repeated. Ported
+ * unchanged from video-pipeline/src/stitch.ts.
+ */
+const MOTION_PRESETS: Array<{ z: string; x: string; y: string }> = [
+  { z: "1.0+0.22*(on/{D})", x: "iw/2-(iw/zoom/2)", y: "ih/2-(ih/zoom/2)" }, // zoom in, centered
+  { z: "1.22-0.22*(on/{D})", x: "iw/2-(iw/zoom/2)", y: "ih/2-(ih/zoom/2)" }, // zoom out, centered
+  { z: "1.15", x: "(iw-iw/zoom)*(on/{D})", y: "ih/2-(ih/zoom/2)" }, // pan left -> right
+  { z: "1.15", x: "(iw-iw/zoom)*(1-on/{D})", y: "ih/2-(ih/zoom/2)" }, // pan right -> left
+  { z: "1.15", x: "iw/2-(iw/zoom/2)", y: "(ih-ih/zoom)*(on/{D})" }, // pan top -> bottom
+];
+
+/**
+ * Fallback for when the paid Veo call fails: turns one still image into a silent video of the
+ * given duration with a pan/zoom ("Ken Burns effect"). Ported unchanged from
+ * video-pipeline/src/stitch.ts.
+ */
+export async function animateImage(
+  imagePath: string,
+  durationSeconds: number,
+  aspectRatio: "16:9" | "9:16",
+  outPath: string,
+  sceneIndex = 0
+): Promise<string> {
+  const [w, h] = aspectRatio === "16:9" ? [1280, 720] : [720, 1280];
+  const fps = 30;
+  const totalFrames = Math.max(1, Math.round(durationSeconds * fps));
+  const preset = MOTION_PRESETS[((sceneIndex % MOTION_PRESETS.length) + MOTION_PRESETS.length) % MOTION_PRESETS.length];
+  const substituteFrameCount = (expr: string) => expr.replaceAll("{D}", String(totalFrames));
+  const z = substituteFrameCount(preset.z);
+  const x = substituteFrameCount(preset.x);
+  const y = substituteFrameCount(preset.y);
+
+  await run("ffmpeg", [
+    "-y",
+    "-loop", "1",
+    "-i", imagePath,
+    "-vf",
+    `scale=${w * 2}:${h * 2}:force_original_aspect_ratio=increase,crop=${w * 2}:${h * 2},` +
+      `zoompan=z='${z}':x='${x}':y='${y}':d=${totalFrames}:s=${w}x${h}:fps=${fps}`,
+    "-t", durationSeconds.toFixed(2),
+    "-pix_fmt", "yuv420p",
+    outPath,
+  ]);
+
+  return outPath;
+}
+
+/**
  * Combines a generated video clip (Veo) with TTS audio.
  * - Automatically loops (-stream_loop -1) the video if narration is longer than the clip.
  * - Trims output (-shortest) exactly when the voiceover finishes.
