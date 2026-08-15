@@ -1,0 +1,47 @@
+# Render Blueprint - lives at the repo ROOT deliberately (Render only auto-detects render.yaml
+# there, not in a subdirectory). This repo is a monorepo: video-pipeline's own single-operator
+# tool at the root, plus web/ (Vercel) and worker/ (this blueprint) as siblings. Both
+# dockerfilePath and dockerContext below are repo-root-relative per Render's spec, not relative
+# to this file or to worker/ - that's what broke the first deploy attempt (it fell back to
+# generic Node auto-detection against video-pipeline's own root package.json instead).
+#
+# Deploys as a background worker (type: worker - no HTTP port, no public URL, never spins down
+# on idle, unlike a Web Service, which is the wrong type for something that just polls a
+# database continuously).
+#
+# Database is Neon (via Vercel's Storage/Marketplace integration, or neon.tech directly), not a
+# Render-managed Postgres instance - both web/ (Vercel) and this worker connect to the same Neon
+# connection string. Paste it in as DATABASE_URL below when prompted.
+#
+# Setup: in the Render dashboard, "New +" -> "Blueprint", connect this repo. Render should find
+# this file automatically since it's at the root. Env vars marked `sync: false` prompt for a
+# value during that setup - have these ready:
+#   DATABASE_URL, GEMINI_API_KEY, YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, TOKEN_ENCRYPTION_KEY
+# TOKEN_ENCRYPTION_KEY must be the exact same value as web/'s TOKEN_ENCRYPTION_KEY (see
+# web/.env.example) - it's how the worker decrypts refresh tokens web/ encrypted. DATABASE_URL
+# must be Neon's DIRECT (non-pooled) connection string, same as web/'s.
+#
+# SKIP_USAGE_CAP is set to "true" here deliberately - single-operator use, no Stripe billing
+# turned on for real users yet (see worker/src/poller.ts). Flip to "false" (or remove) once
+# other people are actually using this and the Stripe-driven cap should apply.
+
+services:
+  - type: worker
+    name: ytauto-worker
+    runtime: docker
+    dockerfilePath: ./worker/Dockerfile
+    dockerContext: ./worker
+    plan: starter
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: YOUTUBE_CLIENT_ID
+        sync: false
+      - key: YOUTUBE_CLIENT_SECRET
+        sync: false
+      - key: TOKEN_ENCRYPTION_KEY
+        sync: false
+      - key: SKIP_USAGE_CAP
+        value: "true"
