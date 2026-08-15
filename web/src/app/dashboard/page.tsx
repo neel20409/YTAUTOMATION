@@ -2,6 +2,8 @@ import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { Card } from "@/components/ui";
+import { StageTimeline } from "@/components/StageTimeline";
 
 const YOUTUBE_ERROR_MESSAGES: Record<string, string> = {
   access_denied: "YouTube connection was cancelled.",
@@ -11,6 +13,15 @@ const YOUTUBE_ERROR_MESSAGES: Record<string, string> = {
   channel_not_found: "Couldn't find that channel.",
   no_refresh_token: "Google didn't return a refresh token - try disconnecting the app at https://myaccount.google.com/permissions and reconnecting.",
   no_youtube_channel_found: "No YouTube channel found on that Google account.",
+};
+
+const FORMAT_LABEL: Record<string, string> = { WIDE: "16:9", TALL: "9:16" };
+
+const RUN_STATUS_STYLE: Record<string, string> = {
+  QUEUED: "border-standby/40 bg-standby-dim/40 text-standby",
+  RUNNING: "border-signal/40 bg-signal-dim/40 text-signal",
+  SUCCEEDED: "border-phosphor/40 bg-phosphor-dim/40 text-phosphor",
+  FAILED: "border-fault/40 bg-fault-dim/40 text-fault",
 };
 
 export default async function DashboardPage({
@@ -25,16 +36,24 @@ export default async function DashboardPage({
 
   const channels = await prisma.channel.findMany({
     where: { userId: session.user.id },
-    include: { youtubeConnection: true },
+    include: {
+      youtubeConnection: true,
+      runs: { orderBy: { createdAt: "desc" }, take: 1, include: { topic: true } },
+    },
     orderBy: { createdAt: "asc" },
   });
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-1 flex-col gap-8 px-6 py-16">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Your channels</h1>
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard/billing" className="text-sm underline">
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-6 py-12">
+      <header className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <span className="h-2 w-2 rounded-full bg-signal" aria-hidden />
+          <span className="font-display text-sm font-semibold uppercase tracking-[0.2em] text-dim">
+            Production Desk
+          </span>
+        </div>
+        <nav className="flex items-center gap-6 text-sm">
+          <Link href="/dashboard/billing" className="text-dim hover:text-paper">
             Billing
           </Link>
           <form
@@ -43,57 +62,104 @@ export default async function DashboardPage({
               await signOut({ redirectTo: "/login" });
             }}
           >
-            <button type="submit" className="text-sm text-gray-500 underline">
+            <button type="submit" className="text-dim hover:text-paper">
               Log out
             </button>
           </form>
-        </div>
+        </nav>
+      </header>
+
+      <div>
+        <h1 className="font-display text-3xl font-semibold text-paper">Your channels</h1>
+        <p className="mt-1 text-sm text-dim">
+          {channels.length === 0
+            ? "Nothing running yet."
+            : `${channels.length} channel${channels.length === 1 ? "" : "s"} on the desk.`}
+        </p>
       </div>
 
       {youtubeError && (
-        <p className="rounded border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700">
+        <p className="rounded-lg border border-fault/40 bg-fault-dim/40 px-4 py-3 text-sm text-fault">
           {YOUTUBE_ERROR_MESSAGES[youtubeError] ?? `YouTube connection failed: ${youtubeError}`}
         </p>
       )}
       {youtubeConnected && (
-        <p className="rounded border border-green-300 bg-green-50 px-4 py-2 text-sm text-green-700">
+        <p className="rounded-lg border border-phosphor/40 bg-phosphor-dim/40 px-4 py-3 text-sm text-phosphor">
           YouTube channel connected.
         </p>
       )}
 
-      {channels.length === 0 ? (
-        <p className="text-gray-500">No channels yet.</p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {channels.map((channel) => (
-            <li key={channel.id} className="flex items-center justify-between rounded border px-4 py-3">
-              <div>
-                <div className="font-medium">{channel.displayName}</div>
-                <div className="text-sm text-gray-500">
-                  {channel.language} · {channel.aspectRatio === "WIDE" ? "16:9" : "9:16"}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {channels.map((channel) => {
+          const run = channel.runs[0];
+          return (
+            <Card key={channel.id} className="flex flex-col gap-5 p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="font-display text-lg font-semibold text-paper">{channel.displayName}</h2>
+                  <p className="mt-0.5 font-mono text-xs uppercase tracking-wide text-dim">
+                    {channel.language} · {FORMAT_LABEL[channel.aspectRatio]}
+                  </p>
                 </div>
+                {channel.youtubeConnection ? (
+                  <span className="flex items-center gap-1.5 rounded-full border border-phosphor/40 bg-phosphor-dim/40 px-2.5 py-1 text-xs font-medium text-phosphor">
+                    <span className="h-1.5 w-1.5 rounded-full bg-phosphor" aria-hidden />
+                    Connected
+                  </span>
+                ) : (
+                  <a
+                    href={`/api/youtube/connect?channelId=${channel.id}`}
+                    className="rounded-full border border-line px-2.5 py-1 text-xs font-medium text-dim hover:border-signal hover:text-signal"
+                  >
+                    Connect YouTube
+                  </a>
+                )}
               </div>
-              {channel.youtubeConnection ? (
-                <span className="text-sm text-green-700">YouTube connected</span>
-              ) : (
-                <a
-                  href={`/api/youtube/connect?channelId=${channel.id}`}
-                  className="rounded bg-foreground px-3 py-1.5 text-sm text-background"
-                >
-                  Connect YouTube
-                </a>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
 
-      <Link
-        href="/dashboard/channels/new"
-        className="w-fit rounded bg-foreground px-4 py-2 text-background"
-      >
-        + Add a channel
-      </Link>
+              {run ? (
+                <div className="flex flex-col gap-3 border-t border-line pt-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="line-clamp-1 text-sm text-paper" title={run.topic.title}>
+                      {run.topic.title}
+                    </p>
+                    <span
+                      className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide ${RUN_STATUS_STYLE[run.status]}`}
+                    >
+                      {run.status}
+                    </span>
+                  </div>
+                  <StageTimeline status={run.status} stage={run.stage} />
+                  {run.status === "SUCCEEDED" && run.videoUrl && (
+                    <a
+                      href={run.videoUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs font-medium text-signal hover:underline"
+                    >
+                      Watch on YouTube ↗
+                    </a>
+                  )}
+                  {run.status === "FAILED" && run.errorMessage && (
+                    <p className="line-clamp-2 text-xs text-fault" title={run.errorMessage}>
+                      {run.errorMessage}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="border-t border-line pt-4 text-sm text-dim">No runs yet.</p>
+              )}
+            </Card>
+          );
+        })}
+
+        <Link
+          href="/dashboard/channels/new"
+          className="flex min-h-[9rem] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-line text-dim transition-colors hover:border-signal hover:text-signal"
+        >
+          <span className="text-2xl leading-none">+</span>
+          <span className="text-sm font-medium">Add a channel</span>
+        </Link>
+      </div>
     </main>
   );
 }
