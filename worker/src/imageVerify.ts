@@ -2,7 +2,9 @@ import { readFile } from "node:fs/promises";
 import { GoogleGenAI } from "@google/genai";
 import { withRetry, getGeminiApiKey } from "./retry.js";
 
-const GEMINI_VISION_MODEL = process.env.GEMINI_MODEL ?? "gemini-3-pro-preview";
+// See scriptGen.ts - gemini-pro-latest is a stable alias, not a dated preview name that 404s
+// once deprecated.
+const GEMINI_VISION_MODEL = process.env.GEMINI_MODEL ?? "gemini-pro-latest";
 
 function getAiClient() {
   return new GoogleGenAI({ apiKey: getGeminiApiKey() });

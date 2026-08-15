@@ -17,7 +17,10 @@ function getAiClient() {
   return new GoogleGenAI({ apiKey: getGeminiApiKey() });
 }
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-3-pro-preview";
+// gemini-pro-latest is a stable alias Google keeps pointed at their current recommended pro
+// model, rather than a dated/preview model name that goes stale and 404s once deprecated (which
+// is exactly what happened to the specific "gemini-3-pro-preview" name this used to hardcode).
+const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-pro-latest";
 
 /**
  * Generates a scene-by-scene script for one video. Ported from video-pipeline/src/scriptGen.ts,
