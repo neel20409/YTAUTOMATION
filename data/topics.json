@@ -297,6 +297,36 @@
       "title": "Bloop and Boo Practice Active Listening",
       "language": "English",
       "status": "done"
+    },
+    {
+      "id": "bl-017",
+      "title": "Bloop and Boo Keep Trying Their Best",
+      "language": "English",
+      "status": "pending"
+    },
+    {
+      "id": "bl-018",
+      "title": "Bloop and Boo Care for the Earth",
+      "language": "English",
+      "status": "pending"
+    },
+    {
+      "id": "bl-019",
+      "title": "Bloop and Boo Cheer for Their Friends",
+      "language": "English",
+      "status": "pending"
+    },
+    {
+      "id": "bl-020",
+      "title": "Bloop and Boo Learn why Honesty Matters",
+      "language": "English",
+      "status": "pending"
+    },
+    {
+      "id": "bl-021",
+      "title": "Bloop and Boo Learn the Value of a Helping Hand",
+      "language": "English",
+      "status": "pending"
     }
   ]
 }
